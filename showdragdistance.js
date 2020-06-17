@@ -225,95 +225,36 @@ ControlsLayer.prototype.drawDragRulers = function() {
 }
 
 
-  /* -------------------------------------------- */
-
-  /**
-   * Get the Ruler display for a specific User ID
-   * @param {string} userId
-   * @return {Ruler|null}
-   */
 Object.defineProperty(ControlsLayer,'._dragRulers',{value:{}})
 
-// Token.prototype._onClickLeft = function(event) {
-//     const tool = game.activeTool;
-//     const oe = event.data.originalEvent;
 
-//     // Add or remove targets
-//     if ( tool === "target" ) {
-//       this.setTarget(!this.isTargeted, {releaseOthers: !oe.shiftKey});
-//     }
-
-//     // Add or remove control
-//     else {
-//       if ( oe.shiftKey && this._controlled ) return this.release();
-//       this.layer.hud.clear();
-//       this.control({releaseOthers: !oe.shiftKey});
-//     }
-
-//     // Dispatch Ruler measurements through to the Canvas
-//     let isRuler = (tool === "ruler") || ( oe.ctrlKey || oe.metaKey );
-//     let showDragDistance = game.settings.get('ShowDragDistance','enabled');
-//     //event.ctrlKey = true;
-  
-//     if ( isRuler ) {
-//       return canvas.mouseInteractionManager._handleClickLeft(event);
-//     } else if(showDragDistance){
-//     	 // event.data.originalEvent.ctrlKey = true;
-//     	tokenDrag = true;
-//     	canvas.controls.dragRuler._onDragStart(event);
-//     }
-//   }
 /* Hook fires on control AND release for some reason so we have to check if it's controlled */
-// Hooks.on('controlToken', function(token){
-//   // 	console.log('test',token._controlled)
 
 
-//  	if(token._controlled){
- 
-	
-// 		token.on('mousedown',function(event){
-// 			console.log('mousedown')
-// 			//event.data.originalEvent.ctrlKey = true;
-// 			const isCtrl = game.keyboard.isCtrl(event);
-// 			if(!isCtrl){
-// 			   event.data.origin = token.center;
-//         tokenDrag = true;
-//         canvas.controls.dragRuler._onDragStart(event);
-// 	    }else{
-//          canvas.controls.dragRuler._endMeasurement();
-//       }
-// 		});
-//  		token.on('mouseup',function(event){
-// 			console.log('control mouseup')
-//       canvas.controls.dragRuler._endMeasurement();
-//  		})
-//   }else{
-// 		tokenDrag = false;
-// 		token.off('mousedown');
-//  		 token.off('mouseup');
-//  	}
-	
-// })
 Hooks.on('hoverToken', (token,hover)=>{
   console.log(token._hover)
-
+  console.log('hovered token is controlled token', token == canvas.tokens.controlled[0])
   if(hover){
+    let token2 = token;
+    console.log('test')
     token.on('mousedown',function(event){
        console.log('mousedown')
        //event.data.originalEvent.ctrlKey = true;
        const isCtrl = game.keyboard.isCtrl(event);
-       if(!isCtrl){
+        if(!isCtrl){
           event.data.origin = token.center;
           tokenDrag = true;
           canvas.controls.dragRuler._onDragStart(event);
-       }else{
+        }else{
            canvas.controls.dragRuler._endMeasurement();
+            token2._onClickLeft(event);
         }
-      });
+    });
   }else{
+    //TOKEN HOVEROUT
     token.off('mousedown');
     //if(!tokenDrag)
-     if(token == canvas.tokens.controlled[0])
+     if(token == canvas.tokens.controlled[0] && !game.keyboard.isCtrl(event))
       canvas.controls.dragRuler._endMeasurement();
   }
 })
