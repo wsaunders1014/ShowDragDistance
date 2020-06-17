@@ -3,7 +3,7 @@
   "title": "Show Drag Distance",
   "description": "Shows the distance you're dragging a token, similar to holding the ctrl key. Because 30 feet isn't as much as it sounds.",
   "authors": [{"name":"Will Saunders","email":"willsaunders1014@gmail.com" }],
-  "version": "1.0.0",
+  "version": "1.0.2",
   "minimumCoreVersion": "0.6.0",
   "compatibleCoreVersion":"0.6.2",
   "scripts": [

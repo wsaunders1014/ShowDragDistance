@@ -37,7 +37,7 @@ class DragRuler extends Ruler {
   _onClickLeft(event) {
 
 
-    if ( (this._state === 2) ) this._addWaypoint(event.data.origin);
+    //if ( (this._state === 2) ) this._addWaypoint(event.data.origin);
   }
   _onDragStart(event) {
     console.log('DragRuler _onDragStart')
@@ -71,6 +71,12 @@ class DragRuler extends Ruler {
       }
     }
   }
+  _onMouseUp(event) {
+   // const oe = event.data.originalEvent;
+  //  const isCtrl = oe.ctrlKey || oe.metaKey;
+  //  if ( !isCtrl ) 
+      this._endMeasurement();
+  }
   measure(destination, {gridSpaces=true}={},showPath=false) {
     destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
     const waypoints = this.waypoints.concat([destination]);
@@ -98,7 +104,7 @@ class DragRuler extends Ruler {
       let s = segments[i];
       s.last = i === (segments.length - 1);
       s.distance = d;
-    //  s.text = this._getSegmentLabel(d, totalDistance, s.last);
+      //  s.text = this._getSegmentLabel(d, totalDistance, s.last);
       s.text = this._getSegmentLabel(d, s.last);
     }
 
@@ -132,11 +138,11 @@ class DragRuler extends Ruler {
      	 this._highlightMeasurement(ray);
     }
     if(showPath){
-    // Draw endpoints
+      // Draw endpoints
 	    for ( let p of waypoints ) {
 	      r.lineStyle(2, 0x000000, 0.5).beginFill(this.color, 0.25).drawCircle(p.x, p.y, 8);
 	    }
-	}
+	  }
 
     // Return the measured segments
     return segments;
@@ -192,7 +198,7 @@ class DragRuler extends Ruler {
       _state: this._state
     }
   }
-   update(data) {
+  update(data) {
     if ( data.class !== "DragRuler" ) throw new Error("Unable to recreate DragRuler instance from provided data");
     console.log('Dragruler update')
     // Populate data
@@ -216,7 +222,7 @@ ControlsLayer.prototype.drawDragRulers = function() {
       let dragRuler = new DragRuler(u);
       this._dragRulers[u._id] = this.dragRulers.addChild(dragRuler);
     }
-  }
+}
 
 
   /* -------------------------------------------- */
@@ -226,62 +232,87 @@ ControlsLayer.prototype.drawDragRulers = function() {
    * @param {string} userId
    * @return {Ruler|null}
    */
-   Object.defineProperty(ControlsLayer,'._dragRulers',{value:{}})
+Object.defineProperty(ControlsLayer,'._dragRulers',{value:{}})
 
-Token.prototype._onClickLeft = function(event) {
-    const tool = game.activeTool;
-    const oe = event.data.originalEvent;
+// Token.prototype._onClickLeft = function(event) {
+//     const tool = game.activeTool;
+//     const oe = event.data.originalEvent;
 
-    // Add or remove targets
-    if ( tool === "target" ) {
-      this.setTarget(!this.isTargeted, {releaseOthers: !oe.shiftKey});
-    }
+//     // Add or remove targets
+//     if ( tool === "target" ) {
+//       this.setTarget(!this.isTargeted, {releaseOthers: !oe.shiftKey});
+//     }
 
-    // Add or remove control
-    else {
-      if ( oe.shiftKey && this._controlled ) return this.release();
-      this.layer.hud.clear();
-      this.control({releaseOthers: !oe.shiftKey});
-    }
+//     // Add or remove control
+//     else {
+//       if ( oe.shiftKey && this._controlled ) return this.release();
+//       this.layer.hud.clear();
+//       this.control({releaseOthers: !oe.shiftKey});
+//     }
 
-    // Dispatch Ruler measurements through to the Canvas
-    let isRuler = (tool === "ruler") || ( oe.ctrlKey || oe.metaKey );
-    let showDragDistance = game.settings.get('ShowDragDistance','enabled');
-    //event.ctrlKey = true;
+//     // Dispatch Ruler measurements through to the Canvas
+//     let isRuler = (tool === "ruler") || ( oe.ctrlKey || oe.metaKey );
+//     let showDragDistance = game.settings.get('ShowDragDistance','enabled');
+//     //event.ctrlKey = true;
   
-    if ( isRuler ) {
-      return canvas.mouseInteractionManager._handleClickLeft(event);
-    } else if(showDragDistance){
-    	 // event.data.originalEvent.ctrlKey = true;
-    	tokenDrag = true;
-    	canvas.controls.dragRuler._onDragStart(event);
-    }
-  }
+//     if ( isRuler ) {
+//       return canvas.mouseInteractionManager._handleClickLeft(event);
+//     } else if(showDragDistance){
+//     	 // event.data.originalEvent.ctrlKey = true;
+//     	tokenDrag = true;
+//     	canvas.controls.dragRuler._onDragStart(event);
+//     }
+//   }
 /* Hook fires on control AND release for some reason so we have to check if it's controlled */
 // Hooks.on('controlToken', function(token){
-// 	console.log('test',token._controlled)
-// 	if(token._controlled){
-// 		tokenDrag = true;
+//   // 	console.log('test',token._controlled)
+
+
+//  	if(token._controlled){
+ 
+	
 // 		token.on('mousedown',function(event){
 // 			console.log('mousedown')
 // 			//event.data.originalEvent.ctrlKey = true;
 // 			const isCtrl = game.keyboard.isCtrl(event);
 // 			if(!isCtrl){
-// 				event.data.origin = token.center;
-// 	    		tokenDrag = true;
-// 	    	 	canvas.controls.dragRuler._onDragStart(event);
-// 	    	 }
+// 			   event.data.origin = token.center;
+//         tokenDrag = true;
+//         canvas.controls.dragRuler._onDragStart(event);
+// 	    }else{
+//          canvas.controls.dragRuler._endMeasurement();
+//       }
 // 		});
-// 		token.on('mouseup',function(event){
+//  		token.on('mouseup',function(event){
 // 			console.log('control mouseup')
-// 		})
-// 	}else{
+//       canvas.controls.dragRuler._endMeasurement();
+//  		})
+//   }else{
 // 		tokenDrag = false;
 // 		token.off('mousedown');
-// 		token.off('mouseup');
-// 	}
+//  		 token.off('mouseup');
+//  	}
 	
 // })
+Hooks.on('hoverToken', (token,hover)=>{
+  if(hover){
+    token.on('mousedown',function(event){
+       console.log('mousedown')
+       //event.data.originalEvent.ctrlKey = true;
+       const isCtrl = game.keyboard.isCtrl(event);
+       if(!isCtrl){
+          event.data.origin = token.center;
+          tokenDrag = true;
+          canvas.controls.dragRuler._onDragStart(event);
+       }else{
+           canvas.controls.dragRuler._endMeasurement();
+        }
+      });
+  }else{
+    token.off('mousedown');
+    canvas.controls.dragRuler._endMeasurement();
+  }
+})
 Hooks.on('preUpdateToken', function(){
 	if(tokenDrag){
 		tokenDrag = false;
