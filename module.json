@@ -1,0 +1,22 @@
+{
+  "name": "ShowDragDistance",
+  "title": "Show Drag Distance",
+  "description": "Shows the distance you're dragging a token, similar to holding the ctrl key. Because 30 feet isn't as much as it sounds.",
+  "authors": [{"name":"Will Saunders","email":"willsaunders1014@gmail.com" }],
+  "version": "1.0.0",
+  "minimumCoreVersion": "0.6.0",
+  "compatibleCoreVersion":"0.6.2",
+  "scripts": [
+  	"showdragdistance.js"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+   ],
+  "url":"https://github.com/wsaunders1014/showdragdistance",
+  "manifest":"https://raw.githubusercontent.com/wsaunders1014/showdragdistance/master/module.json",
+  "download":"https://github.com/wsaunders1014/showdragdistance/archive/master.zip"
+}
