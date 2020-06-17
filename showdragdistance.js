@@ -98,7 +98,8 @@ class DragRuler extends Ruler {
       let s = segments[i];
       s.last = i === (segments.length - 1);
       s.distance = d;
-      s.text = this._getSegmentLabel(d, totalDistance, s.last);
+    //  s.text = this._getSegmentLabel(d, totalDistance, s.last);
+      s.text = this._getSegmentLabel(d, s.last);
     }
 
    
