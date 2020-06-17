@@ -295,6 +295,8 @@ Object.defineProperty(ControlsLayer,'._dragRulers',{value:{}})
 	
 // })
 Hooks.on('hoverToken', (token,hover)=>{
+  console.log(token._hover)
+
   if(hover){
     token.on('mousedown',function(event){
        console.log('mousedown')
@@ -310,7 +312,9 @@ Hooks.on('hoverToken', (token,hover)=>{
       });
   }else{
     token.off('mousedown');
-    canvas.controls.dragRuler._endMeasurement();
+    //if(!tokenDrag)
+     if(token == canvas.tokens.controlled[0])
+      canvas.controls.dragRuler._endMeasurement();
   }
 })
 Hooks.on('preUpdateToken', function(){
