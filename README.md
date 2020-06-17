@@ -7,6 +7,9 @@ Default ruler behaviour is unchanged.
 
 #Changelog
 
+1.0.4
+- FIxed bug that required you to hover over token, then out, then back in to use default ruler function.
+
 1.0.3
 - Fixed bug when dragging over another token that would remove distance label.
 
