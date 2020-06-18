@@ -6,10 +6,29 @@ Hooks.once('init', function(){
       scope: "world",
       config: true,
       default: true,
-      type: Boolean,
-      onChange: x => window.location.reload()
+      type: Boolean
+      //onChange: x => window.location.reload()
+    });
+  game.settings.register('ShowDragDistance', 'showPathDefault', {
+      name: "ShowDragDistance.showPath-s",
+      hint: "ShowDragDistance.showPath-l",
+      scope: "world",
+      config: true,
+      default: true,
+      type: Boolean
+     // onChange: x => window.location.reload()
+    });
+  game.settings.register('ShowDragDistance', 'rangeFinder', {
+      name: "ShowDragDistance.rangeFinder-s",
+      hint: "ShowDragDistance.rangeFinder-l",
+      scope: "world",
+      config: true,
+      default: true,
+      type: Boolean
+     // onChange: x => window.location.reload()
     });
 })
+
 /***************************************************************************************************************/
 /*
 
@@ -25,7 +44,7 @@ class DragRuler extends Ruler {
     this.ruler = null;
     this.name = `DragRuler.${user._id}`;
     canvas.grid.addHighlightLayer(this.name);
-    console.log('test - Drag Ruler created')
+   
   }
    clear() {
     this._state = Ruler.STATES.INACTIVE;
@@ -37,15 +56,15 @@ class DragRuler extends Ruler {
   _onClickLeft(event) {
 
 
-    //if ( (this._state === 2) ) this._addWaypoint(event.data.origin);
+    if ( (this._state === 2) ) this._addWaypoint(event.data.origin);
   }
   _onDragStart(event) {
-    console.log('DragRuler _onDragStart')
+    
     this.clear();
     this._state = Ruler.STATES.STARTING;
     this._addWaypoint(event.data.origin);
   }
- _onMouseMove(event) {
+ _onMouseMove(event,rangeFinder=false,instant= false) {
   
     if ( this._state === Ruler.STATES.MOVING ) return;
 
@@ -62,22 +81,38 @@ class DragRuler extends Ruler {
       canvas.hud.token.clear();
       delete event.data.hudState;
 
-      let isCtrl = game.keyboard.isCtrl(event);
+      //If Show Path by Default is set, path is shown and ctrl hides.
+      let showPath = true;
+      let isCtrl = game.keyboard.isCtrl(event); 
+      if(game.settings.get('ShowDragDistance','showPathDefault')==false){
+        if(isCtrl)
+          showPath= true;
+        else
+          showPath = false;
+      }else{
+        if(isCtrl)
+          showPath= false;
+        else
+          showPath = true;
+      }
+      if(rangeFinder)
+        showPath = true;
+     
       // Draw measurement updates
-      if ( Date.now() - mt > 50 ) {
-        this.measure(destination, {gridSpaces: !originalEvent.shiftKey},isCtrl);
+      if ( Date.now() - mt > 50  || instant) {
+        this.measure(destination, {gridSpaces: !originalEvent.shiftKey},showPath);
         event._measureTime = Date.now();
         this._state = Ruler.STATES.MEASURING;
       }
     }
   }
   _onMouseUp(event) {
-   // const oe = event.data.originalEvent;
-  //  const isCtrl = oe.ctrlKey || oe.metaKey;
-  //  if ( !isCtrl ) 
+   const oe = event.data.originalEvent;
+   const isCtrl = oe.ctrlKey || oe.metaKey;
+   if ( !isCtrl ) 
       this._endMeasurement();
   }
-  measure(destination, {gridSpaces=true}={},showPath=false) {
+  measure(destination, {gridSpaces=true}={},showPath=true) {
     destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
     const waypoints = this.waypoints.concat([destination]);
     const r = this.dragRuler;
@@ -104,8 +139,10 @@ class DragRuler extends Ruler {
       let s = segments[i];
       s.last = i === (segments.length - 1);
       s.distance = d;
-      //  s.text = this._getSegmentLabel(d, totalDistance, s.last);
-      s.text = this._getSegmentLabel(d, s.last);
+      if(this.waypoints.length > 1)
+        s.text = this._getSegmentLabel(d, totalDistance, s.last);
+      else
+        s.text = this._getSegmentLabel(d, s.last);
     }
 
    
@@ -125,7 +162,7 @@ class DragRuler extends Ruler {
 	       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
    	   }
       // Draw the distance label just after the endpoint of the segment
-      if ( label ) {
+      if ( label && game.settings.get('ShowDragDistance','enabled')) {
         label.text = text;
         label.alpha = last ? 1.0 : 0.5;
         label.visible = true;
@@ -183,8 +220,9 @@ class DragRuler extends Ruler {
     }
   }
   _endMeasurement() {
-  	console.log('dragRuler _endMeasurement')
+  	
     this.clear();
+    canvas.controls.ruler.clear();
     game.user.broadcastActivity({dragRuler: null});
     tokenDrag = false;
     canvas.mouseInteractionManager.state = MouseInteractionManager.INTERACTION_STATES.HOVER;
@@ -200,7 +238,7 @@ class DragRuler extends Ruler {
   }
   update(data) {
     if ( data.class !== "DragRuler" ) throw new Error("Unable to recreate DragRuler instance from provided data");
-    console.log('Dragruler update')
+   
     // Populate data
     this.waypoints = data.waypoints;
     this.destination = data.destination;
@@ -214,8 +252,13 @@ class DragRuler extends Ruler {
     // Measure current distance
     if ( data.destination ) this.measure(data.destination);
   }
+  _onKeyDown(e) {
+  
+  }
 }
 var tokenDrag = false;
+var defaultDrag = false;
+var rangeFinder = false;
 ControlsLayer.prototype.drawDragRulers = function() {
     this.dragRulers = this.addChild(new PIXI.Container());
     for (let u of game.users.entities) {
@@ -232,22 +275,23 @@ Object.defineProperty(ControlsLayer,'._dragRulers',{value:{}})
 
 
 Hooks.on('hoverToken', (token,hover)=>{
-  console.log(token._hover)
-  console.log('hovered token is controlled token', token == canvas.tokens.controlled[0])
+
   if(hover){
     let token2 = token;
-    console.log('test')
+  
     token.on('mousedown',function(event){
-       console.log('mousedown')
+      
        //event.data.originalEvent.ctrlKey = true;
-       const isCtrl = game.keyboard.isCtrl(event);
+       let isCtrl = game.keyboard.isCtrl(event);
+  
         if(!isCtrl){
           event.data.origin = token.center;
           tokenDrag = true;
           canvas.controls.dragRuler._onDragStart(event);
         }else{
-           canvas.controls.dragRuler._endMeasurement();
-            token2._onClickLeft(event);
+         // canvas.controls.dragRuler._endMeasurement();
+          //token2._onClickLeft(event);
+          defaultDrag = true;
         }
     });
   }else{
@@ -258,19 +302,16 @@ Hooks.on('hoverToken', (token,hover)=>{
       canvas.controls.dragRuler._endMeasurement();
   }
 })
-Hooks.on('preUpdateToken', function(){
-	if(tokenDrag){
-		tokenDrag = false;
-		canvas.controls.dragRuler._endMeasurement();
-	}
-})
+
 ControlsLayer.prototype.getDragRulerForUser = function(userId) {
 	return this._dragRulers[userId] || null;
 }
 /***************************************************************************************************************/
 
+
+
 Hooks.on('ready', function (){
-	console.log("SDD Ready")
+
 	canvas.controls.dragRulers = null;
 	canvas.controls._dragRulers = {};
 	canvas.controls.drawDragRulers();
@@ -279,11 +320,19 @@ Hooks.on('ready', function (){
 	  		return canvas.controls.getDragRulerForUser(game.user._id);
 	}});
 
-	
-
+})
+Hooks.on('preUpdateToken', function(){
+  if(tokenDrag){
+    tokenDrag = false;
+    rangeFinder = false;
+     canvas.controls.ruler.active = false;
+    canvas.controls.dragRuler._endMeasurement();
+  }else{
+    defaultDrag = false;
+  }
 })
 Hooks.on('canvasReady',function(){
-	console.log('SDD canvasReady');
+
 	canvas.controls.dragRulers = null;
 	canvas.controls._dragRulers = {};
 	canvas.controls.drawDragRulers();;
@@ -292,13 +341,70 @@ Hooks.on('canvasReady',function(){
 		if(tokenDrag){
 			
 			e.data.destination = e.data.getLocalPosition(canvas.activeLayer);
-			canvas.controls.dragRuler._onMouseMove(e);
-			//console.log('SDD Mousemove',e)
+			canvas.controls.dragRuler._onMouseMove(e,false);
+		
 		}
+   
+    if(game.keyboard.isDown('Control') && canvas.tokens.controlled.length == 1 && !defaultDrag){
+      rangeFinder = true;
+      
+       e.data.origin = canvas.tokens.controlled['0'].center;
+      if(canvas.controls.dragRuler._state == 0) {
+       canvas.controls.dragRuler._onDragStart(e);
+      }
+       
+      e.data.destination = e.data.getLocalPosition(canvas.activeLayer);
+      canvas.controls.dragRuler._onMouseMove(e,rangeFinder);
+    }
+    if(game.keyboard.isDown('Control') == false && !canvas.controls.dragRuler._state == 0 && tokenDrag == false){
+       canvas.controls.dragRuler._endMeasurement();
+    }
 		
 	});
+
+  window.addEventListener('keydown', (e)=>{
+   
+
+    // IF CTRL IS PRESSED AND A SINGLE TOKEN IS SELECTED
+     if(e.which == 17  && !defaultDrag && canvas.tokens.controlled.length == 1 && !canvas.tokens.controlled[0]._hover){
+      rangeFinder = true;
+      e.data = {origin:{},destination:{},originalEvent:e}
+      if(canvas.controls.dragRuler._state == 0) {
+       //SET ORIGIN AND FIRE METHOD TO START BUILDING THE RULER
+        e.data.origin = canvas.tokens.controlled['0'].center;
+        canvas.controls.dragRuler._onDragStart(e);
+      }
+      //SET DESTINATION AND THEN FIRE METHOD THAT DRAWS THE LINE ON CANVAS
+      e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+      canvas.controls.dragRuler._onMouseMove(e,rangeFinder,true);
+    }
+  })
+	window.addEventListener('keyup', (e)=>{
+
+    if(rangeFinder && tokenDrag === false && e.which != 32){
+      canvas.controls.ruler.active = false;
+      rangeFinder = false;
+      canvas.controls.dragRuler._endMeasurement();
+      defaultDrag = false;
+    }
+    if(e.which == 32 && !defaultDrag && rangeFinder){
+      e.stopPropagation();
+      e.preventDefault();
+     // game.togglePause(true,false);
+     canvas.controls.ruler.waypoints.push({x:0,y:0})
+      canvas.controls.dragRuler.moveToken();
+    }
+  })
+  canvas.stage.on('click',function(e){
+    if(rangeFinder)
+      canvas.controls.dragRuler._onClickLeft(e);
+  })
+})
+
+Hooks.on('init',()=>{
 	
 })
-Hooks.on('init',()=>{
-	console.log("SDD INIT")
-})
+/*
+displayObject.worldTransform.applyInverse(globalPos || this.global, point);
+
+*/
