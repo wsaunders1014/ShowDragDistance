@@ -83,7 +83,7 @@ class DragRuler extends Ruler {
 
       //If Show Path by Default is set, path is shown and ctrl hides.
       let showPath = true;
-      let isCtrl = game.keyboard.isCtrl(event); 
+      let isCtrl = game.keyboard._downKeys.has('Control'); 
       if(game.settings.get('ShowDragDistance','showPathDefault')==false){
         if(isCtrl)
           showPath= true;
@@ -220,7 +220,7 @@ class DragRuler extends Ruler {
     }
   }
   _endMeasurement() {
-  	
+  	console.log('_endMeasurement')
     this.clear();
     canvas.controls.ruler.clear();
     game.user.broadcastActivity({dragRuler: null});
@@ -268,36 +268,45 @@ ControlsLayer.prototype.drawDragRulers = function() {
 }
 
 
-Object.defineProperty(ControlsLayer,'._dragRulers',{value:{}})
-
-
 /* Hook fires on control AND release for some reason so we have to check if it's controlled */
 
 
 Hooks.on('hoverToken', (token,hover)=>{
-
   if(hover){
+    console.log('hover')
     let token2 = token;
-  
-    token.on('mousedown',function(event){
-      
-       //event.data.originalEvent.ctrlKey = true;
-       let isCtrl = game.keyboard.isCtrl(event);
-  
-        if(!isCtrl){
-          event.data.origin = token.center;
-          tokenDrag = true;
-          canvas.controls.dragRuler._onDragStart(event);
-        }else{
-         // canvas.controls.dragRuler._endMeasurement();
-          //token2._onClickLeft(event);
-          defaultDrag = true;
-        }
-    });
+     if(canvas.stage.children.last().name == 'Tooltip')
+       canvas.stage.children.last().visible = true;
+     if(token.mouseDownEvent === false){
+      token.mouseDownEvent = true;
+      token.on('mousedown',function(event){
+        console.log('mousedown')
+         //event.data.originalEvent.ctrlKey = true;
+         let isCtrl = game.keyboard.isCtrl(event);
+    
+          if(!isCtrl){
+            event.data.origin = token.center;
+            if(token._controlled){
+              tokenDrag = true;
+              canvas.controls.dragRuler._onDragStart(event);
+            }
+          }else{
+           // canvas.controls.dragRuler._endMeasurement();
+            //token2._onClickLeft(event);
+            defaultDrag = true;
+          }
+      });
+    }
   }else{
     //TOKEN HOVEROUT
-    token.off('mousedown');
-    //if(!tokenDrag)
+    //VTTA-Party fix
+    if(canvas.stage.children.last().name == 'Tooltip')
+       canvas.stage.children.last().visible = true;
+     
+      //token.off('mousedown');
+      
+    
+    
      if(token == canvas.tokens.controlled[0] && !game.keyboard.isCtrl(event))
       canvas.controls.dragRuler._endMeasurement();
   }
@@ -308,7 +317,7 @@ ControlsLayer.prototype.getDragRulerForUser = function(userId) {
 }
 /***************************************************************************************************************/
 
-
+Token.prototype.mouseDownEvent = false;
 
 Hooks.on('ready', function (){
 
@@ -322,31 +331,52 @@ Hooks.on('ready', function (){
 
 })
 Hooks.on('preUpdateToken', function(){
+  console.log('UpdateToken')
   if(tokenDrag){
     tokenDrag = false;
     rangeFinder = false;
-     canvas.controls.ruler.active = false;
-    canvas.controls.dragRuler._endMeasurement();
+   
+   // canvas.controls.dragRuler._endMeasurement();
   }else{
     defaultDrag = false;
   }
 })
+Hooks.on('updateToken', function(){
+  console.log('UpdateToken')
+  if(tokenDrag){
+    tokenDrag = false;
+    rangeFinder = false;
+   
+   // canvas.controls.dragRuler._endMeasurement();
+  }else{
+    defaultDrag = false;
+  }
+})
+
 Hooks.on('canvasReady',function(){
 
 	canvas.controls.dragRulers = null;
 	canvas.controls._dragRulers = {};
 	canvas.controls.drawDragRulers();;
 	canvas.stage.on('mousemove', function(e){
-		
+		//console.log('canvas mousemove')
+    console.log('tokenDrag',tokenDrag)
+    //DRAGGING TOKEN
 		if(tokenDrag){
-			
+      //HIDES TOKEN TOOLTIP FROM VTTA-PARTY module
+      if(canvas.stage.children.last().name == 'Tooltip')
+			 canvas.stage.children.last().visible = false;
 			e.data.destination = e.data.getLocalPosition(canvas.activeLayer);
 			canvas.controls.dragRuler._onMouseMove(e,false);
 		
 		}
-   
+   if(dragOverride){
+      e.data.destination = e.data.getLocalPosition(canvas.activeLayer);
+     e.data.origin = canvas.tokens.controlled['0'].center;
+     canvas.controls.ruler._onMouseMove(e);
+   }
     if(game.keyboard.isDown('Control') && canvas.tokens.controlled.length == 1 && !defaultDrag){
-      rangeFinder = true;
+    //  rangeFinder = true;
       
        e.data.origin = canvas.tokens.controlled['0'].center;
       if(canvas.controls.dragRuler._state == 0) {
@@ -361,24 +391,36 @@ Hooks.on('canvasReady',function(){
     }
 		
 	});
-
+var dragOverride = false;
   window.addEventListener('keydown', (e)=>{
-   
-
-    // IF CTRL IS PRESSED AND A SINGLE TOKEN IS SELECTED
-     if(e.which == 17  && !defaultDrag && canvas.tokens.controlled.length == 1 && !canvas.tokens.controlled[0]._hover){
-      rangeFinder = true;
+    if(e.which == 17  && canvas.tokens.controlled.length == 1 && !tokenDrag){
       e.data = {origin:{},destination:{},originalEvent:e}
-      if(canvas.controls.dragRuler._state == 0) {
-       //SET ORIGIN AND FIRE METHOD TO START BUILDING THE RULER
-        e.data.origin = canvas.tokens.controlled['0'].center;
-        canvas.controls.dragRuler._onDragStart(e);
-      }
-      //SET DESTINATION AND THEN FIRE METHOD THAT DRAWS THE LINE ON CANVAS
       e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
-      canvas.controls.dragRuler._onMouseMove(e,rangeFinder,true);
-    }
+      e.data.origin = canvas.tokens.controlled['0'].center;
+      if(canvas.controls.ruler._state == 0) {
+        canvas.controls.ruler._onDragStart(e);
+        canvas.controls.ruler._onMouseMove(e);
+        console.log(canvas.controls.ruler._state)
+      }
+      dragOverride = true;
+   
+   }
+
+    // // IF CTRL IS PRESSED AND A SINGLE TOKEN IS SELECTED
+    //  if(e.which == 17  && !defaultDrag && canvas.tokens.controlled.length == 1 && !canvas.tokens.controlled[0]._hover){
+    //   rangeFinder = true;
+    //   e.data = {origin:{},destination:{},originalEvent:e}
+    //   if(canvas.controls.dragRuler._state == 0) {
+    //    //SET ORIGIN AND FIRE METHOD TO START BUILDING THE RULER
+    //     e.data.origin = canvas.tokens.controlled['0'].center;
+    //     canvas.controls.dragRuler._onDragStart(e);
+    //   }
+    //   //SET DESTINATION AND THEN FIRE METHOD THAT DRAWS THE LINE ON CANVAS
+    //   e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+    //   canvas.controls.dragRuler._onMouseMove(e,rangeFinder,true);
+    // }
   })
+
 	window.addEventListener('keyup', (e)=>{
 
     if(rangeFinder && tokenDrag === false && e.which != 32){
@@ -394,6 +436,14 @@ Hooks.on('canvasReady',function(){
      canvas.controls.ruler.waypoints.push({x:0,y:0})
       canvas.controls.dragRuler.moveToken();
     }
+    if(dragOverride && e.which == 17){
+      dragOverride = false;
+      e.data = {}
+      e.data.originalEvent = e;
+      canvas.controls.ruler._onMouseUp(e);
+      canvas.controls.ruler._state = 0;
+    }
+  
   })
   canvas.stage.on('click',function(e){
     if(rangeFinder)
