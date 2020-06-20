@@ -221,7 +221,6 @@ class DragRuler extends Ruler {
     }
   }
   _endMeasurement() {
-  	console.log('_endMeasurement')
     this.clear();
     canvas.controls.ruler.clear();
     canvas.controls.dragRuler.clear();
@@ -283,8 +282,6 @@ var dragToken = (e) =>{
   //Token is being dragged
   
   if(canvas.tokens.preview.children.length > 0){
-    //console.log(e.data)
-    console.log(canvas.tokens.preview.children.length)
     if(canvas.controls.dragRuler.active === false){
       //HIDES TOKEN TOOLTIP FROM VTTA-PARTY module
       if(canvas.stage.children.last().name == 'Tooltip' && game.user.isGM)
@@ -303,7 +300,6 @@ var dragToken = (e) =>{
 var rangeFinder = false;
 var ctrlPressed= false;
 var keyDown = (e) =>{
-  console.log(e.which)
 
  e.data = {origin:{},destination:{},originalEvent:e}
   if(e.which == 17){ //CTRL KEY 
@@ -337,7 +333,6 @@ var keyDown = (e) =>{
   }
 }
 var keyUp = (e) =>{
-  console.log('keyup')
   //Hides/shows path while dragging token
   if(e.which == 17){
     if(ctrlPressed){
@@ -349,7 +344,7 @@ var keyUp = (e) =>{
         canvas.controls.dragRuler.measure(e.data.destination,{gridSpaces: !e.data.originalEvent.shiftKey}, game.settings.get('ShowDragDistance','showPathDefault'));
       }else if(canvas.controls.ruler.active && !dragOverride){ 
         //RANGE FINDER
-        console.log('test')
+
         if(game.settings.get('ShowDragDistance','rangeFinder') === true){
            e.data = {origin:{},destination:{},originalEvent:e}
           e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
@@ -367,7 +362,7 @@ var keyUp = (e) =>{
   }
 }
 Hooks.on('init',()=>{
-	console.log(canvas, game)
+
 });
 Hooks.on('ready', function (){
 
@@ -390,13 +385,13 @@ var tokenClick = (e) =>{
   
   let isCtrl = game.keyboard.isCtrl(e)
   if(isCtrl){
-    console.log('mousedown')
+ 
     dragOverride = true;
   }else
     dragOverride = false;
 }
 Hooks.on('controlToken', (token,controlled)=>{
-  console.log('controlToken', controlled)
+  
 
   token.controller = (controlled) ? game.userId:null;
 
@@ -431,7 +426,6 @@ Hooks.on('hoverToken',(token,hover)=>{
    }
 })
 window.addEventListener('click',(e)=>{
-  console.log('click',e)
   if(!e.ctrlKey)
     dragOverride = false;
 })
