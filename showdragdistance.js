@@ -284,8 +284,8 @@ var dragToken = (e) =>{
   if(canvas.tokens.preview.children.length > 0){
     if(canvas.controls.dragRuler.active === false){
       //HIDES TOKEN TOOLTIP FROM VTTA-PARTY module
-      if(canvas.stage.children.last().name == 'Tooltip' && game.user.isGM)
-        canvas.stage.children.last().visible = false;
+      if(canvas.stage.getChildByName('Tooltip') != null && game.user.isGM)
+        canvas.stage.getChildByName('Tooltip').visible = false;
       canvas.controls.dragRuler._onDragStart(e);
     }else {
       canvas.controls.dragRuler._onMouseMove(e);
@@ -418,8 +418,8 @@ Hooks.on('hoverToken',(token,hover)=>{
   }
   if(hover){
     //Show VTTA hover
-    if(canvas.stage.children.last().name == 'Tooltip' && game.user.isGM)
-      canvas.stage.children.last().visible = true;
+    if(canvas.stage.getChildByName('Tooltip') != null && game.user.isGM)
+      canvas.stage.getChildByName('Tooltip').visible = true;
     token.on('mousedown',tokenClick)
    }else{
      token.off('mousedown',tokenClick)

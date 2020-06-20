@@ -3,7 +3,7 @@
   "title": "Show Drag Distance",
   "description": "MAJOR OVERHAUL: Rebuilt from the ground up. No known bugs at the moment, but please submit an issue on github if you find one. Shows the distance you're dragging a token, similar to holding the ctrl key. Because 30 feet isn't as much as it sounds. Also removes the contraint of the normal ruler to hold CTRL and drag from Token. Now you can just press CTRL with token selected and it will show you the range from your token to mouse!",
   "authors": [{"name":"Will Saunders","email":"willsaunders1014@gmail.com" }],
-  "version": "1.0.5",
+  "version": "1.0.6",
   "minimumCoreVersion": "0.6.2",
   "compatibleCoreVersion":"0.6.2",
   "scripts": [
