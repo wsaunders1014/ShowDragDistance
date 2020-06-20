@@ -7,6 +7,13 @@ Default ruler behaviour is unchanged.
 
 #Changelog
 
+1.0.7
+- Moved settings to client.
+- Fixed bug where non-gm's would have to release their token and then recontrol it to have module work.
+
+1.0.6
+- Added hotfix for issue where token's were no longer draggable.
+
 1.0.5
 - Rebuilt from scratch. Fixed previous bugs.
 
