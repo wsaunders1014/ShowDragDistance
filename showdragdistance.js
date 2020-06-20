@@ -3,7 +3,7 @@ Hooks.once('init', function(){
 	game.settings.register('ShowDragDistance', 'enabled', {
       name: "ShowDragDistance.enable-s",
       hint: "ShowDragDistance.enable-l",
-      scope: "world",
+      scope: "client",
       config: true,
       default: true,
       type: Boolean
@@ -12,7 +12,7 @@ Hooks.once('init', function(){
   game.settings.register('ShowDragDistance', 'showPathDefault', {
       name: "ShowDragDistance.showPath-s",
       hint: "ShowDragDistance.showPath-l",
-      scope: "world",
+      scope: "client",
       config: true,
       default: true,
       type: Boolean
@@ -21,7 +21,7 @@ Hooks.once('init', function(){
   game.settings.register('ShowDragDistance', 'rangeFinder', {
       name: "ShowDragDistance.rangeFinder-s",
       hint: "ShowDragDistance.rangeFinder-l",
-      scope: "world",
+      scope: "client",
       config: true,
       default: true,
       type: Boolean
@@ -280,7 +280,6 @@ Token.prototype.controller = null;
 
 var dragToken = (e) =>{
   //Token is being dragged
-  
   if(canvas.tokens.preview.children.length > 0){
     if(canvas.controls.dragRuler.active === false){
       //HIDES TOKEN TOOLTIP FROM VTTA-PARTY module
@@ -365,7 +364,10 @@ Hooks.on('init',()=>{
 
 });
 Hooks.on('ready', function (){
-
+ Object.defineProperty(canvas.controls,'dragRuler',  {
+   get() {
+       return canvas.controls.getDragRulerForUser(game.user._id);
+ }});
  
 
 })
@@ -373,10 +375,8 @@ Hooks.on('canvasReady',(t)=>{
   canvas.controls.dragRulers = null;
  canvas.controls._dragRulers = {};
  canvas.controls.drawDragRulers();
- Object.defineProperty(canvas.controls,'dragRuler',  {
-   get() {
-       return canvas.controls.getDragRulerForUser(game.user._id);
- }});
+ canvas.stage.on('mousemove',dragToken)
+
 
 
 });
@@ -394,13 +394,12 @@ Hooks.on('controlToken', (token,controlled)=>{
   
 
   token.controller = (controlled) ? game.userId:null;
-
   if(controlled & canvas.tokens.controlled.length === 1){
-   
-    canvas.stage.on('mousemove',dragToken)
+    
   } else {
+    console.log('token test 2')
     token.off('mousedown',tokenClick)
-    canvas.stage.off('mousemove',dragToken)
+    //canvas.stage.off('mousemove',dragToken)
   }
 })
 Hooks.on('updateToken',()=>{
