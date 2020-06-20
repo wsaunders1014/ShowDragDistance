@@ -113,6 +113,7 @@ class DragRuler extends Ruler {
       this._endMeasurement();
   }
   measure(destination, {gridSpaces=true}={},showPath=true) {
+   
     destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
     const waypoints = this.waypoints.concat([destination]);
     const r = this.dragRuler;
@@ -223,8 +224,8 @@ class DragRuler extends Ruler {
   	console.log('_endMeasurement')
     this.clear();
     canvas.controls.ruler.clear();
+    canvas.controls.dragRuler.clear();
     game.user.broadcastActivity({dragRuler: null});
-    tokenDrag = false;
     canvas.mouseInteractionManager.state = MouseInteractionManager.INTERACTION_STATES.HOVER;
   }
   toJSON() {
@@ -266,195 +267,173 @@ ControlsLayer.prototype.drawDragRulers = function() {
       this._dragRulers[u._id] = this.dragRulers.addChild(dragRuler);
     }
 }
-
+ControlsLayer.prototype.getDragRulerForUser = function(userId) {
+  return this._dragRulers[userId] || null;
+}
+//This wasn't necessary after all, because canvas.tokens.controlled is populated by browser, its' not global, but whatever.
+Token.prototype.controller = null;
 
 /* Hook fires on control AND release for some reason so we have to check if it's controlled */
 
 
-Hooks.on('hoverToken', (token,hover)=>{
-  if(hover){
-    console.log('hover')
-    let token2 = token;
-     if(canvas.stage.children.last().name == 'Tooltip')
-       canvas.stage.children.last().visible = true;
-     if(token.mouseDownEvent === false){
-      token.mouseDownEvent = true;
-      token.on('mousedown',function(event){
-        console.log('mousedown')
-         //event.data.originalEvent.ctrlKey = true;
-         let isCtrl = game.keyboard.isCtrl(event);
-    
-          if(!isCtrl){
-            event.data.origin = token.center;
-            if(token._controlled){
-              tokenDrag = true;
-              canvas.controls.dragRuler._onDragStart(event);
-            }
-          }else{
-           // canvas.controls.dragRuler._endMeasurement();
-            //token2._onClickLeft(event);
-            defaultDrag = true;
-          }
-      });
-    }
-  }else{
-    //TOKEN HOVEROUT
-    //VTTA-Party fix
-    if(canvas.stage.children.last().name == 'Tooltip')
-       canvas.stage.children.last().visible = true;
-     
-      //token.off('mousedown');
-      
-    
-    
-     if(token == canvas.tokens.controlled[0] && !game.keyboard.isCtrl(event))
-      canvas.controls.dragRuler._endMeasurement();
-  }
-})
-
-ControlsLayer.prototype.getDragRulerForUser = function(userId) {
-	return this._dragRulers[userId] || null;
-}
 /***************************************************************************************************************/
 
-Token.prototype.mouseDownEvent = false;
 
+var dragToken = (e) =>{
+  //Token is being dragged
+  
+  if(canvas.tokens.preview.children.length > 0){
+    //console.log(e.data)
+    console.log(canvas.tokens.preview.children.length)
+    if(canvas.controls.dragRuler.active === false){
+      //HIDES TOKEN TOOLTIP FROM VTTA-PARTY module
+      if(canvas.stage.children.last().name == 'Tooltip' && game.user.isGM)
+        canvas.stage.children.last().visible = false;
+      canvas.controls.dragRuler._onDragStart(e);
+    }else {
+      canvas.controls.dragRuler._onMouseMove(e);
+    }
+  }
+  if(canvas.controls.ruler.active && rangeFinder){
+    e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+    e.data.origin = canvas.tokens.controlled['0'].center;
+    canvas.controls.ruler._onMouseMove(e)
+  }
+}
+var rangeFinder = false;
+var ctrlPressed= false;
+var keyDown = (e) =>{
+  console.log(e.which)
+
+ e.data = {origin:{},destination:{},originalEvent:e}
+  if(e.which == 17){ //CTRL KEY 
+
+    if(canvas.controls.dragRuler.active){  //Hides/Shows path while dragging.
+      
+      if(!ctrlPressed){
+        ctrlPressed = true;
+        e.data = {}
+        e.data = {origin:{},destination:{},originalEvent:e}
+        e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+        e.data.origin = canvas.tokens.controlled['0'].center;
+        canvas.controls.dragRuler.measure(e.data.destination,{gridSpaces: !e.data.originalEvent.shiftKey}, !game.settings.get('ShowDragDistance','showPathDefault'));
+      }
+    }else{
+      //RANGE FINDER
+      if(game.settings.get('ShowDragDistance','rangeFinder') && canvas.tokens.controlled.length == 1 && !dragOverride){
+        //We have to fake our event data.
+        e.data = {origin:{},destination:{},originalEvent:e}
+        e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+        e.data.origin = canvas.tokens.controlled['0'].center;
+        if(!ctrlPressed){
+          rangeFinder = true;
+          ctrlPressed = true;
+          //Draws initial line on press, otherwise user has to move mouse to get line to draw
+          canvas.controls.ruler._onDragStart(e);
+          canvas.controls.ruler._onMouseMove(e)
+        }
+      }
+    }
+  }
+}
+var keyUp = (e) =>{
+  console.log('keyup')
+  //Hides/shows path while dragging token
+  if(e.which == 17){
+    if(ctrlPressed){
+      ctrlPressed = false;
+      if(canvas.controls.dragRuler.active){
+        e.data = {origin:{},destination:{},originalEvent:e}
+        e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+        e.data.origin = canvas.tokens.controlled['0'].center;
+        canvas.controls.dragRuler.measure(e.data.destination,{gridSpaces: !e.data.originalEvent.shiftKey}, game.settings.get('ShowDragDistance','showPathDefault'));
+      }else if(canvas.controls.ruler.active && !dragOverride){ 
+        //RANGE FINDER
+        console.log('test')
+        if(game.settings.get('ShowDragDistance','rangeFinder') === true){
+           e.data = {origin:{},destination:{},originalEvent:e}
+          e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+          e.data.origin = canvas.tokens.controlled['0'].center;
+          rangeFinder = false;
+          
+          canvas.controls.ruler._onMouseUp(e);
+          canvas.controls.ruler._endMeasurement();
+        }
+      }
+    }
+  }else{
+      
+      
+  }
+}
+Hooks.on('init',()=>{
+	console.log(canvas, game)
+});
 Hooks.on('ready', function (){
 
-	canvas.controls.dragRulers = null;
-	canvas.controls._dragRulers = {};
-	canvas.controls.drawDragRulers();
-	Object.defineProperty(canvas.controls,'dragRuler',  {
-		get() {
-	  		return canvas.controls.getDragRulerForUser(game.user._id);
-	}});
+ 
 
 })
-Hooks.on('preUpdateToken', function(){
-  console.log('UpdateToken')
-  if(tokenDrag){
-    tokenDrag = false;
-    rangeFinder = false;
-   
-   // canvas.controls.dragRuler._endMeasurement();
-  }else{
-    defaultDrag = false;
-  }
-})
-Hooks.on('updateToken', function(){
-  console.log('UpdateToken')
-  if(tokenDrag){
-    tokenDrag = false;
-    rangeFinder = false;
-   
-   // canvas.controls.dragRuler._endMeasurement();
-  }else{
-    defaultDrag = false;
-  }
-})
+Hooks.on('canvasReady',(t)=>{
+  canvas.controls.dragRulers = null;
+ canvas.controls._dragRulers = {};
+ canvas.controls.drawDragRulers();
+ Object.defineProperty(canvas.controls,'dragRuler',  {
+   get() {
+       return canvas.controls.getDragRulerForUser(game.user._id);
+ }});
 
-Hooks.on('canvasReady',function(){
 
-	canvas.controls.dragRulers = null;
-	canvas.controls._dragRulers = {};
-	canvas.controls.drawDragRulers();;
-	canvas.stage.on('mousemove', function(e){
-		//console.log('canvas mousemove')
-    console.log('tokenDrag',tokenDrag)
-    //DRAGGING TOKEN
-		if(tokenDrag){
-      //HIDES TOKEN TOOLTIP FROM VTTA-PARTY module
-      if(canvas.stage.children.last().name == 'Tooltip')
-			 canvas.stage.children.last().visible = false;
-			e.data.destination = e.data.getLocalPosition(canvas.activeLayer);
-			canvas.controls.dragRuler._onMouseMove(e,false);
-		
-		}
-   if(dragOverride){
-      e.data.destination = e.data.getLocalPosition(canvas.activeLayer);
-     e.data.origin = canvas.tokens.controlled['0'].center;
-     canvas.controls.ruler._onMouseMove(e);
-   }
-    if(game.keyboard.isDown('Control') && canvas.tokens.controlled.length == 1 && !defaultDrag){
-    //  rangeFinder = true;
-      
-       e.data.origin = canvas.tokens.controlled['0'].center;
-      if(canvas.controls.dragRuler._state == 0) {
-       canvas.controls.dragRuler._onDragStart(e);
-      }
-       
-      e.data.destination = e.data.getLocalPosition(canvas.activeLayer);
-      canvas.controls.dragRuler._onMouseMove(e,rangeFinder);
-    }
-    if(game.keyboard.isDown('Control') == false && !canvas.controls.dragRuler._state == 0 && tokenDrag == false){
-       canvas.controls.dragRuler._endMeasurement();
-    }
-		
-	});
+});
 var dragOverride = false;
-  window.addEventListener('keydown', (e)=>{
-    if(e.which == 17  && canvas.tokens.controlled.length == 1 && !tokenDrag){
-      e.data = {origin:{},destination:{},originalEvent:e}
-      e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
-      e.data.origin = canvas.tokens.controlled['0'].center;
-      if(canvas.controls.ruler._state == 0) {
-        canvas.controls.ruler._onDragStart(e);
-        canvas.controls.ruler._onMouseMove(e);
-        console.log(canvas.controls.ruler._state)
-      }
-      dragOverride = true;
-   
-   }
-
-    // // IF CTRL IS PRESSED AND A SINGLE TOKEN IS SELECTED
-    //  if(e.which == 17  && !defaultDrag && canvas.tokens.controlled.length == 1 && !canvas.tokens.controlled[0]._hover){
-    //   rangeFinder = true;
-    //   e.data = {origin:{},destination:{},originalEvent:e}
-    //   if(canvas.controls.dragRuler._state == 0) {
-    //    //SET ORIGIN AND FIRE METHOD TO START BUILDING THE RULER
-    //     e.data.origin = canvas.tokens.controlled['0'].center;
-    //     canvas.controls.dragRuler._onDragStart(e);
-    //   }
-    //   //SET DESTINATION AND THEN FIRE METHOD THAT DRAWS THE LINE ON CANVAS
-    //   e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
-    //   canvas.controls.dragRuler._onMouseMove(e,rangeFinder,true);
-    // }
-  })
-
-	window.addEventListener('keyup', (e)=>{
-
-    if(rangeFinder && tokenDrag === false && e.which != 32){
-      canvas.controls.ruler.active = false;
-      rangeFinder = false;
-      canvas.controls.dragRuler._endMeasurement();
-      defaultDrag = false;
-    }
-    if(e.which == 32 && !defaultDrag && rangeFinder){
-      e.stopPropagation();
-      e.preventDefault();
-     // game.togglePause(true,false);
-     canvas.controls.ruler.waypoints.push({x:0,y:0})
-      canvas.controls.dragRuler.moveToken();
-    }
-    if(dragOverride && e.which == 17){
-      dragOverride = false;
-      e.data = {}
-      e.data.originalEvent = e;
-      canvas.controls.ruler._onMouseUp(e);
-      canvas.controls.ruler._state = 0;
-    }
+var tokenClick = (e) =>{
   
-  })
-  canvas.stage.on('click',function(e){
-    if(rangeFinder)
-      canvas.controls.dragRuler._onClickLeft(e);
-  })
+  let isCtrl = game.keyboard.isCtrl(e)
+  if(isCtrl){
+    console.log('mousedown')
+    dragOverride = true;
+  }else
+    dragOverride = false;
+}
+Hooks.on('controlToken', (token,controlled)=>{
+  console.log('controlToken', controlled)
+
+  token.controller = (controlled) ? game.userId:null;
+
+  if(controlled & canvas.tokens.controlled.length === 1){
+   
+    canvas.stage.on('mousemove',dragToken)
+  } else {
+    token.off('mousedown',tokenClick)
+    canvas.stage.off('mousemove',dragToken)
+  }
+})
+Hooks.on('updateToken',()=>{
+ 
+  canvas.controls.dragRuler._endMeasurement();
+  dragOverride = false;
+
+ 
+ 
 })
 
-Hooks.on('init',()=>{
-	
+Hooks.on('hoverToken',(token,hover)=>{
+  if(token == canvas.tokens.controlled[0] && !hover && !dragOverride){
+    canvas.controls.dragRuler._endMeasurement();
+  }
+  if(hover){
+    //Show VTTA hover
+    if(canvas.stage.children.last().name == 'Tooltip' && game.user.isGM)
+      canvas.stage.children.last().visible = true;
+    token.on('mousedown',tokenClick)
+   }else{
+     token.off('mousedown',tokenClick)
+   }
 })
-/*
-displayObject.worldTransform.applyInverse(globalPos || this.global, point);
-
-*/
+window.addEventListener('click',(e)=>{
+  console.log('click',e)
+  if(!e.ctrlKey)
+    dragOverride = false;
+})
+ window.addEventListener('keydown', keyDown);
+  window.addEventListener('keyup', keyUp);
