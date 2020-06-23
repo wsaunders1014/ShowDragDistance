@@ -301,7 +301,7 @@ var ctrlPressed= false;
 var keyDown = (e) =>{
 
  e.data = {origin:{},destination:{},originalEvent:e}
-  if(e.which == 17){ //CTRL KEY 
+  if(e.which == 17 && e.location === 1){ //CTRL KEY 
 
     if(canvas.controls.dragRuler.active){  //Hides/Shows path while dragging.
       
@@ -333,7 +333,7 @@ var keyDown = (e) =>{
 }
 var keyUp = (e) =>{
   //Hides/shows path while dragging token
-  if(e.which == 17){
+  if(e.which == 17 && e.location === 1){
     if(ctrlPressed){
       ctrlPressed = false;
       if(canvas.controls.dragRuler.active){
