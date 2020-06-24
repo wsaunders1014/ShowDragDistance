@@ -276,9 +276,10 @@ Token.prototype.controller = null;
 
 
 /***************************************************************************************************************/
-
+var activated = false;
 var test = true;
 var dragToken = (e) =>{
+  canvas.mouseInteractionManager._activateClickEvents();
   if(test){
     console.log('dragToken', canvas.activeLayer.name)
     //Token is being dragged
@@ -371,13 +372,13 @@ Hooks.on('init',()=>{
 
 });
 Hooks.on('ready', function (){
-    CONFIG.debug.hooks = true;
-  CONFIG.debug.mouseInteraction = true;
+  //   CONFIG.debug.hooks = true;
+  // CONFIG.debug.mouseInteraction = true;
  Object.defineProperty(canvas.controls,'dragRuler',  {
    get() {
        return canvas.controls.getDragRulerForUser(game.user._id);
  }});
- 
+
 
 })
 Hooks.on('canvasReady',(t)=>{

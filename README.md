@@ -6,6 +6,9 @@ Rangefinder: With a single token selected, hold CTRL on the canvas and it will d
 Default ruler behaviour is unchanged.
 
 #Changelog
+1.0.9
+- Fixed issue where a user couldn't pan after another user moved their token. I am no longer able to reproduce the issue. If you run into it again, please let me know.
+
 1.0.7
 - Removed incorrect messaging surround ALT button in settings. Confined CTRL functionality to Left CTRL only.
 
