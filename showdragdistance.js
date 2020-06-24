@@ -1,5 +1,5 @@
 Hooks.once('init', function(){
-	
+
 	game.settings.register('ShowDragDistance', 'enabled', {
       name: "ShowDragDistance.enable-s",
       hint: "ShowDragDistance.enable-l",
@@ -277,29 +277,36 @@ Token.prototype.controller = null;
 
 /***************************************************************************************************************/
 
-
+var test = true;
 var dragToken = (e) =>{
-  //Token is being dragged
-  if(canvas.tokens.preview.children.length > 0){
-    if(canvas.controls.dragRuler.active === false){
-      //HIDES TOKEN TOOLTIP FROM VTTA-PARTY module
-      if(canvas.stage.getChildByName('Tooltip') != null && game.user.isGM)
-        canvas.stage.getChildByName('Tooltip').visible = false;
-      canvas.controls.dragRuler._onDragStart(e);
-    }else {
-      canvas.controls.dragRuler._onMouseMove(e);
+  if(test){
+    console.log('dragToken', canvas.activeLayer.name)
+    //Token is being dragged
+    if(canvas.tokens.preview.children.length > 0){
+      
+      if(canvas.controls.dragRuler.active === false){
+       
+        //HIDES TOKEN TOOLTIP FROM VTTA-PARTY module
+        if(canvas.stage.getChildByName('Tooltip') != null && game.user.isGM)
+          canvas.stage.getChildByName('Tooltip').visible = false;
+        canvas.controls.dragRuler._onDragStart(e);
+      }else {
+        
+        canvas.controls.dragRuler._onMouseMove(e);
+      }
     }
-  }
-  if(canvas.controls.ruler.active && rangeFinder){
-    e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
-    e.data.origin = canvas.tokens.controlled['0'].center;
-    canvas.controls.ruler._onMouseMove(e)
+    if(canvas.controls.ruler.active && rangeFinder){
+     
+      e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+      e.data.origin = canvas.tokens.controlled['0'].center;
+      canvas.controls.ruler._onMouseMove(e)
+    }
   }
 }
 var rangeFinder = false;
 var ctrlPressed= false;
 var keyDown = (e) =>{
-
+console.log('keydown')
  e.data = {origin:{},destination:{},originalEvent:e}
   if(e.which == 17 && e.location === 1){ //CTRL KEY 
 
@@ -364,6 +371,8 @@ Hooks.on('init',()=>{
 
 });
 Hooks.on('ready', function (){
+    CONFIG.debug.hooks = true;
+  CONFIG.debug.mouseInteraction = true;
  Object.defineProperty(canvas.controls,'dragRuler',  {
    get() {
        return canvas.controls.getDragRulerForUser(game.user._id);
@@ -375,20 +384,24 @@ Hooks.on('canvasReady',(t)=>{
   canvas.controls.dragRulers = null;
  canvas.controls._dragRulers = {};
  canvas.controls.drawDragRulers();
+ canvas.mouseInteractionManager._activateClickEvents();
  canvas.stage.on('mousemove',dragToken)
 
 
 
 });
 var dragOverride = false;
-var tokenClick = (e) =>{
-  
+var tokenClick = (e,token) =>{
+  console.log('tokenCLick')
   let isCtrl = game.keyboard.isCtrl(e)
   if(isCtrl){
  
     dragOverride = true;
-  }else
+  }else{
+    test = true;
     dragOverride = false;
+  }
+  
 }
 Hooks.on('controlToken', (token,controlled)=>{
   
@@ -399,11 +412,11 @@ Hooks.on('controlToken', (token,controlled)=>{
   } else {
     console.log('token test 2')
     token.off('mousedown',tokenClick)
-    //canvas.stage.off('mousemove',dragToken)
+    //
   }
 })
 Hooks.on('updateToken',()=>{
- 
+ console.log('sdd updateTokenHook')
   canvas.controls.dragRuler._endMeasurement();
   dragOverride = false;
 
@@ -419,12 +432,18 @@ Hooks.on('hoverToken',(token,hover)=>{
     //Show VTTA hover
     if(canvas.stage.getChildByName('Tooltip') != null && game.user.isGM)
       canvas.stage.getChildByName('Tooltip').visible = true;
-    token.on('mousedown',tokenClick)
+    token.on('mousedown',tokenClick);
+    token.on('mouseup',(e)=>{
+      console.log('mouseup')
+      test = false;
+    })
    }else{
      token.off('mousedown',tokenClick)
    }
 })
-window.addEventListener('click',(e)=>{
+window.addEventListener('mousedown',(e)=>{
+  canvas.mouseInteractionManager._activateClickEvents();
+  console.log('sdd click', canvas)
   if(!e.ctrlKey)
     dragOverride = false;
 })
