@@ -281,7 +281,7 @@ var test = true;
 var dragToken = (e) =>{
   canvas.mouseInteractionManager._activateClickEvents();
   if(test){
-    console.log('dragToken', canvas.activeLayer.name)
+    
     //Token is being dragged
     if(canvas.tokens.preview.children.length > 0){
       
@@ -307,7 +307,7 @@ var dragToken = (e) =>{
 var rangeFinder = false;
 var ctrlPressed= false;
 var keyDown = (e) =>{
-console.log('keydown')
+
  e.data = {origin:{},destination:{},originalEvent:e}
   if(e.which == 17 && e.location === 1){ //CTRL KEY 
 
@@ -393,7 +393,7 @@ Hooks.on('canvasReady',(t)=>{
 });
 var dragOverride = false;
 var tokenClick = (e,token) =>{
-  console.log('tokenCLick')
+  
   let isCtrl = game.keyboard.isCtrl(e)
   if(isCtrl){
  
@@ -411,13 +411,13 @@ Hooks.on('controlToken', (token,controlled)=>{
   if(controlled & canvas.tokens.controlled.length === 1){
     
   } else {
-    console.log('token test 2')
+    
     token.off('mousedown',tokenClick)
     //
   }
 })
 Hooks.on('updateToken',()=>{
- console.log('sdd updateTokenHook')
+
   canvas.controls.dragRuler._endMeasurement();
   dragOverride = false;
 
@@ -435,7 +435,7 @@ Hooks.on('hoverToken',(token,hover)=>{
       canvas.stage.getChildByName('Tooltip').visible = true;
     token.on('mousedown',tokenClick);
     token.on('mouseup',(e)=>{
-      console.log('mouseup')
+     
       test = false;
     })
    }else{
@@ -444,7 +444,7 @@ Hooks.on('hoverToken',(token,hover)=>{
 })
 window.addEventListener('mousedown',(e)=>{
   canvas.mouseInteractionManager._activateClickEvents();
-  console.log('sdd click', canvas)
+  
   if(!e.ctrlKey)
     dragOverride = false;
 })
