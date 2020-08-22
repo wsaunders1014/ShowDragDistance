@@ -3,7 +3,7 @@
   "title": "Show Drag Distance",
   "description": "Bugfixes: Fixed issue where users couldn't pan after another player moved their token. \n MAJOR OVERHAUL: Rebuilt from the ground up. Please submit an issue on github if you find one. Shows the distance you're dragging a token, similar to holding the ctrl key. Because 30 feet isn't as much as it sounds. Also removes the contraint of the normal ruler to hold CTRL and drag from Token. Now you can just press CTRL with token selected and it will show you the range from your token to mouse!",
   "authors": [{"name":"Will Saunders","email":"willsaunders1014@gmail.com" }],
-  "version": "1.0.9",
+  "version": "1.0.10",
   "minimumCoreVersion": "0.6.2",
   "compatibleCoreVersion":"0.6.4",
   "scripts": [
