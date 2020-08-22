@@ -6,6 +6,17 @@ Rangefinder: With a single token selected, hold CTRL on the canvas and it will d
 Default ruler behaviour is unchanged.
 
 #Changelog
+
+1.1.1 
+- Hotfix: Didn't update module.json to correct version number.
+
+1.1.0
+- Fixed issue with Select box freezing on mouseover of controlled token.
+- Fixed issue where endpoint would remain on grid after using Space to move on rangefinder.
+- Fixed issue where rangefinder would not update on mousemove until you dragged token.
+
+KNOWN BUG: You can't add waypoints to rangefinder ruler. The ruler will intermittently reset causing the waypoints to reset.
+
 1.0.9
 - Fixed issue where a user couldn't pan after another user moved their token. I am no longer able to reproduce the issue. If you run into it again, please let me know.
 

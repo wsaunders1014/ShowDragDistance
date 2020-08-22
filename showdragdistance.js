@@ -1,6 +1,6 @@
 Hooks.once('init', function(){
 
-	game.settings.register('ShowDragDistance', 'enabled', {
+  game.settings.register('ShowDragDistance', 'enabled', {
       name: "ShowDragDistance.enable-s",
       hint: "ShowDragDistance.enable-l",
       scope: "client",
@@ -150,7 +150,7 @@ class DragRuler extends Ruler {
     // Clear the grid highlight layer
     const hlt = canvas.grid.highlightLayers[this.name];
     hlt.clear();
-	
+  
 
     // Draw measured path
     r.clear();
@@ -159,9 +159,9 @@ class DragRuler extends Ruler {
 
       // Draw line segment
       if(showPath){
-	      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
-	       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
-   	   }
+        r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
+         .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
+       }
       // Draw the distance label just after the endpoint of the segment
       if ( label && game.settings.get('ShowDragDistance','enabled')) {
         label.text = text;
@@ -173,14 +173,14 @@ class DragRuler extends Ruler {
 
       // Highlight grid positions
       if(showPath)
-     	 this._highlightMeasurement(ray);
+       this._highlightMeasurement(ray);
     }
     if(showPath){
       // Draw endpoints
-	    for ( let p of waypoints ) {
-	      r.lineStyle(2, 0x000000, 0.5).beginFill(this.color, 0.25).drawCircle(p.x, p.y, 8);
-	    }
-	  }
+      for ( let p of waypoints ) {
+        r.lineStyle(2, 0x000000, 0.5).beginFill(this.color, 0.25).drawCircle(p.x, p.y, 8);
+      }
+    }
 
     // Return the measured segments
     return segments;
@@ -280,7 +280,7 @@ var activated = false;
 var test = true;
 var dragToken = (e) =>{
   canvas.mouseInteractionManager._activateClickEvents();
-  if(test){
+  //if(test){
     
     //Token is being dragged
     if(canvas.tokens.preview.children.length > 0){
@@ -296,13 +296,14 @@ var dragToken = (e) =>{
         canvas.controls.dragRuler._onMouseMove(e);
       }
     }
-    if(canvas.controls.ruler.active && rangeFinder){
-     
+    //console.log('canvas.controls.ruler.active',canvas.controls.ruler.active)
+    if( rangeFinder & canvas.tokens.controlled.length == 1){
+    // console.log('test2')
       e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
       e.data.origin = canvas.tokens.controlled['0'].center;
       canvas.controls.ruler._onMouseMove(e)
     }
-  }
+  //}
 }
 var rangeFinder = false;
 var ctrlPressed= false;
@@ -331,6 +332,7 @@ var keyDown = (e) =>{
         if(!ctrlPressed){
           rangeFinder = true;
           ctrlPressed = true;
+         // console.log('test')
           //Draws initial line on press, otherwise user has to move mouse to get line to draw
           canvas.controls.ruler._onDragStart(e);
           canvas.controls.ruler._onMouseMove(e)
@@ -341,7 +343,8 @@ var keyDown = (e) =>{
 }
 var keyUp = (e) =>{
   //Hides/shows path while dragging token
-  if(e.which == 17 && e.location === 1){
+  console.log('ctrlPressed', ctrlPressed)
+  if(e.which == 17 && e.location === 1 ){ 
     if(ctrlPressed){
       ctrlPressed = false;
       if(canvas.controls.dragRuler.active){
@@ -353,19 +356,33 @@ var keyUp = (e) =>{
         //RANGE FINDER
 
         if(game.settings.get('ShowDragDistance','rangeFinder') === true){
-           e.data = {origin:{},destination:{},originalEvent:e}
+          e.data = {origin:{},destination:{},originalEvent:e}
           e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
           e.data.origin = canvas.tokens.controlled['0'].center;
           rangeFinder = false;
-          
+         
           canvas.controls.ruler._onMouseUp(e);
           canvas.controls.ruler._endMeasurement();
         }
       }
     }
   }else{
-      
-      
+    if(e.which == 32){
+      console.log('test')
+      e.data = {origin:{},destination:{},originalEvent:e}
+          e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+          e.data.origin = canvas.tokens.controlled['0'].center;
+          rangeFinder = false;
+         
+          canvas.controls.ruler._onMouseUp(e);
+          canvas.controls.ruler._endMeasurement();
+    }
+      //e.data = {origin:{},destination:{},originalEvent:e}
+      // canvas.controls.ruler._onMouseUp(e);
+      // canvas.controls.ruler._endMeasurement();
+     // console.log('test',canvas.controls.ruler)
+       //canvas.controls.ruler._endMeasurement();
+       
   }
 }
 Hooks.on('init',()=>{
@@ -396,7 +413,7 @@ var tokenClick = (e,token) =>{
   
   let isCtrl = game.keyboard.isCtrl(e)
   if(isCtrl){
- 
+  //test = false;
     dragOverride = true;
   }else{
     test = true;
@@ -426,7 +443,9 @@ Hooks.on('updateToken',()=>{
 })
 
 Hooks.on('hoverToken',(token,hover)=>{
-  if(token == canvas.tokens.controlled[0] && !hover && !dragOverride){
+  console.log('hoverToken', ["select", "target"].includes(game.activeTool))
+  if(token == canvas.tokens.controlled[0] && !hover && !dragOverride && ["select", "target"].includes(game.activeTool)==false){
+    console.log('clear?')
     canvas.controls.dragRuler._endMeasurement();
   }
   if(hover){
