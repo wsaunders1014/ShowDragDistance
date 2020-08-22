@@ -65,7 +65,7 @@ class DragRuler extends Ruler {
     this._addWaypoint(event.data.origin);
   }
  _onMouseMove(event,rangeFinder=false,instant= false) {
-  
+    
     if ( this._state === Ruler.STATES.MOVING ) return;
 
     // Extract event data
@@ -104,6 +104,9 @@ class DragRuler extends Ruler {
         event._measureTime = Date.now();
         this._state = Ruler.STATES.MEASURING;
       }
+    }else{
+      
+      this.clear();
     }
   }
   _onMouseUp(event) {
@@ -150,7 +153,7 @@ class DragRuler extends Ruler {
     // Clear the grid highlight layer
     const hlt = canvas.grid.highlightLayers[this.name];
     hlt.clear();
-  
+    
 
     // Draw measured path
     r.clear();
@@ -291,14 +294,14 @@ var dragToken = (e) =>{
         if(canvas.stage.getChildByName('Tooltip') != null && game.user.isGM)
           canvas.stage.getChildByName('Tooltip').visible = false;
         canvas.controls.dragRuler._onDragStart(e);
-      }else {
+      }else if(canvas.controls.dragRuler.active) {
         
         canvas.controls.dragRuler._onMouseMove(e);
       }
     }
-    //console.log('canvas.controls.ruler.active',canvas.controls.ruler.active)
+   
     if( rangeFinder & canvas.tokens.controlled.length == 1){
-    // console.log('test2')
+    
       e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
       e.data.origin = canvas.tokens.controlled['0'].center;
       canvas.controls.ruler._onMouseMove(e)
@@ -343,7 +346,7 @@ var keyDown = (e) =>{
 }
 var keyUp = (e) =>{
   //Hides/shows path while dragging token
-  console.log('ctrlPressed', ctrlPressed)
+
   if(e.which == 17 && e.location === 1 ){ 
     if(ctrlPressed){
       ctrlPressed = false;
@@ -368,7 +371,7 @@ var keyUp = (e) =>{
     }
   }else{
     if(e.which == 32){
-      console.log('test')
+      
       e.data = {origin:{},destination:{},originalEvent:e}
           e.data.destination = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
           e.data.origin = canvas.tokens.controlled['0'].center;
@@ -377,11 +380,7 @@ var keyUp = (e) =>{
           canvas.controls.ruler._onMouseUp(e);
           canvas.controls.ruler._endMeasurement();
     }
-      //e.data = {origin:{},destination:{},originalEvent:e}
-      // canvas.controls.ruler._onMouseUp(e);
-      // canvas.controls.ruler._endMeasurement();
-     // console.log('test',canvas.controls.ruler)
-       //canvas.controls.ruler._endMeasurement();
+    
        
   }
 }
@@ -443,9 +442,9 @@ Hooks.on('updateToken',()=>{
 })
 
 Hooks.on('hoverToken',(token,hover)=>{
-  console.log('hoverToken', ["select", "target"].includes(game.activeTool))
+  
   if(token == canvas.tokens.controlled[0] && !hover && !dragOverride && ["select", "target"].includes(game.activeTool)==false){
-    console.log('clear?')
+   
     canvas.controls.dragRuler._endMeasurement();
   }
   if(hover){

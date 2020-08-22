@@ -6,8 +6,10 @@ Rangefinder: With a single token selected, hold CTRL on the canvas and it will d
 Default ruler behaviour is unchanged.
 
 #Changelog
+1.1.2
+- Fixed bug where path would stop updating when you drag token back to starting position, it now disappears if minimum 5ft distance isn't reached.
 
-1.1.0
+1.1.1
 - Fixed issue with Select box freezing on mouseover of controlled token.
 - Fixed issue where endpoint would remain on grid after using Space to move on rangefinder.
 - Fixed issue where rangefinder would not update on mousemove until you dragged token.
