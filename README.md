@@ -7,6 +7,9 @@ Default ruler behaviour is unchanged.
 
 #Changelog
 
+1.1.1 
+- Hotfix: Didn't update module.json to correct version number.
+
 1.1.0
 - Fixed issue with Select box freezing on mouseover of controlled token.
 - Fixed issue where endpoint would remain on grid after using Space to move on rangefinder.
