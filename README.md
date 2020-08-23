@@ -7,6 +7,9 @@ Default ruler behaviour is unchanged.
 
 #Changelog
 
+1.1.3
+- Bumping version number because 1.1.2 has disappeared from the package system.
+
 1.1.2
 - Fixed bug where path would stop updating when you drag token back to starting position, it now disappears if minimum 5ft distance isn't reached.
 
