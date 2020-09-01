@@ -7,6 +7,9 @@ Default ruler behaviour is unchanged.
 
 #Changelog
 
+1.1.4
+- Publishing a new version because I broke the ability to update from inside Foundry in an earlier update. You might need to uninstall and reinstall to gain this benefit moving forward.
+
 1.1.3
 - Bumping version number because 1.1.2 has disappeared from the package system.
 
