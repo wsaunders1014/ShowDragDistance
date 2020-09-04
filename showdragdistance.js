@@ -21,7 +21,6 @@ class DragRuler extends Ruler{
 	   // const oe = event.data.originalEvent;
 	   // const isCtrl = oe.ctrlKey || oe.metaKey;
 	   // if ( !isCtrl ) 
-	   if(event.button == 0)
 	    	this._endMeasurement();
   	}
   	measure(destination, {gridSpaces=true}={}) {
@@ -88,7 +87,63 @@ class DragRuler extends Ruler{
 	    // Return the measured segments
 	    return segments;
   	}
+  	_getMovementToken() {
+  		console.log(this.waypoints)
+	    let [x0, y0] = Object.values(this.waypoints[0]);
+	    const tokens = new Set(canvas.tokens.controlled);
+	    if ( !tokens.size && game.user.character ) {
+	      const charTokens = game.user.character.getActiveTokens();
+	      if ( charTokens.length ) tokens.add(...charTokens);
+	    }
+	    if ( !tokens.size ) return null;
+	    return Array.from(tokens).find(t => {
+	      let pos = new PIXI.Rectangle(t.x - 1, t.y - 1, t.w + 2, t.h + 2);
+	      return pos.contains(x0, y0);
+	    });
+  	}
+  	async moveToken() {
+	    let wasPaused = game.paused;
+	    if ( wasPaused && !game.user.isGM ) {
+	      ui.notifications.warn(game.i18n.localize("GAME.PausedWarning"));
+	      return false;
+	    }
+	    if ( !this.visible || !this.destination ) return false;
+	    const token = this._getMovementToken();
+	    if ( !token ) return;
 
+	    // Determine offset relative to the Token top-left.
+	    // This is important so we can position the token relative to the ruler origin for non-1x1 tokens.
+	    const origin = canvas.grid.getTopLeft(this.waypoints[0].x, this.waypoints[0].y);
+	    const s2 = canvas.dimensions.size / 2;
+	    const dx = Math.round((token.data.x - origin[0]) / s2) * s2;
+	    const dy = Math.round((token.data.y - origin[1]) / s2) * s2;
+
+	    // Get the movement rays and check collision along each Ray
+	    // These rays are center-to-center for the purposes of collision checking
+	    const rays = this._getRaysFromWaypoints(this.waypoints, this.destination);
+	    let hasCollision = rays.some(r => canvas.walls.checkCollision(r));
+	    console.log('hasCollision',hasCollision)
+	    if ( hasCollision ) {
+	      ui.notifications.error(game.i18n.localize("ERROR.TokenCollide"));
+	      return;
+	    }
+
+	    // Execute the movement path.
+	    // Transform each center-to-center ray into a top-left to top-left ray using the prior token offsets.
+	    this._state = Ruler.STATES.MOVING;
+	    token._noAnimate = true;
+	    for ( let r of rays ) {
+	      if ( !wasPaused && game.paused ) break;
+	      const dest = canvas.grid.getTopLeft(r.B.x, r.B.y);
+	      const path = new Ray({x: token.x, y: token.y}, {x: dest[0] + dx, y: dest[1] + dy});
+	      await token.update(path.B);
+	      await token.animateMovement(path);
+	    }
+	    token._noAnimate = false;
+
+	    // Once all animations are complete we can clear the ruler
+	    this._endMeasurement();
+  	}
 	static patchFunction(func, line_number, line, new_line) {
 		let funcStr = func.toString()
 		let lines = funcStr.split("\n")
@@ -159,7 +214,7 @@ class DragRuler extends Ruler{
 		}
 		let oldOnDragLeftMove = Token.prototype._onDragLeftMove;
 		Token.prototype._onDragLeftMove = function(event){
-			console.log('custom _onDragLeftMove', event)
+			//console.log('custom _onDragLeftMove', event)
 			canvas.controls.dragRuler._onMouseMove(event)
 			oldOnDragLeftMove.apply(canvas.tokens.controlled[0],[event])
 		}
@@ -168,15 +223,29 @@ class DragRuler extends Ruler{
 			console.log('custom _onDragLeftCancel',event)
 			event.stopPropagation();
 			//if(event.button == 0) {
+				console.log( canvas.tokens.controlled[0].mouseInteractionManager.state)
+			if(canvas.tokens.controlled.length > 0 ){
+				for ( let c of this.layer.preview.children ) {
+			      const o = c._original;
+			      if ( o ) {
+			        o.data.locked = false;
+			        o.alpha = 1.0;
+			      }
+			    }
+			    this.layer.preview.removeChildren();
+				canvas.controls.dragRuler.moveToken()
 				canvas.controls.dragRuler._onMouseUp(event)
 				oldOnDragLeftCancel.apply(canvas.tokens.controlled[0],[event])
+			}
 			//}
 		}
 		let handleDragCancel = MouseInteractionManager.prototype._handleDragCancel;
 		MouseInteractionManager.prototype._handleDragCancel = function(event){
+
 			if(canvas.tokens.controlled.length > 0 && canvas.tokens.controlled[0].mouseInteractionManager.state == 3){
 				switch(event.button){
 					case 0:
+					console.log('test2')
 						//console.log(handleDragCancel)
 						handleDragCancel.apply(this,[event])
 						break;
