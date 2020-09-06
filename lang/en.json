@@ -1,8 +1,8 @@
 {
 	"ShowDragDistance.enable-s":"Enable Showing Distance on Drag?",
-	"ShowDragDistance.enable-l":"Shows the distance you're moving your token while dragging, similar to holding the CTRL key and dragging on the canvas.",
+	"ShowDragDistance.enable-l":"Shows the distance you're moving your token while dragging, similar to holding the CTRL key and dragging on the canvas. Right click to create waypoints. Press 'X' to delete waypoints.",
 	"ShowDragDistance.showPath-s":"Show Path by Default?",
 	"ShowDragDistance.showPath-l":"Shows path on drag as default, press CTRL to hide it. If disabled, path is hidden and CTRL shows it.",
 	"ShowDragDistance.rangeFinder-s":"Enable Rangefinder?",
-	"ShowDragDistance.rangeFinder-l":"Enable holding CTRL key to show range from selected token on mouse move."
+	"ShowDragDistance.rangeFinder-l":"Enable holding 'R' key to show range from selected token on mouse move."
 }
