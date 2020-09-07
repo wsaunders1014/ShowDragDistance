@@ -400,7 +400,7 @@ Hooks.on('ready',()=>{
 		
 		switch(e.which){
 			case 17:
-				if(e.originalEvent.location == 1 && !rangeFinder && canvas.tokens.controlled.length>0 && game.settings.get('ShowDragDistance','rangeFinder') === true && canvas.mouseInteractionManager.state !=0){
+				if(canvas.controls.dragRuler.active == false && e.originalEvent.location == 1 && !rangeFinder && canvas.tokens.controlled.length>0 && game.settings.get('ShowDragDistance','rangeFinder') === true && canvas.mouseInteractionManager.state !=0){
 					rangeFinder = true;
 					canvas.controls.ruler._state = Ruler.STATES.MEASURING;
 					canvas.controls.ruler._addWaypoint(canvas.tokens.controlled[0].center)
@@ -408,7 +408,7 @@ Hooks.on('ready',()=>{
 					canvas.mouseInteractionManager._activateDragEvents()
 					e.data = {originalEvent:e.originalEvent,origin:canvas.tokens.controlled[0].center,destination:canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens)}
 					canvas.controls.ruler._onMouseMove(e)
-					 canvas.mouseInteractionManager._dragRight = false;
+					canvas.mouseInteractionManager._dragRight = false;
 				}
 				break;
 			case 88:
@@ -439,14 +439,3 @@ Hooks.on('canvasReady', ()=>{
   canvas.controls._dragRulers = {};
   canvas.controls.drawDragRulers();
 })
-/*
-
-y - y1 = m(x - x1)
-y - 1925 = -0.7142857142857143(x - 1325)
-y= -0.7142857142857143x - -946.4285714285714 + 1925
-y= -0.7142857142857143x - 978.5714285714286
-
-grid pixel size = canvas.scene.data.grid
-grid square semantic size =  canvas.scene.data.gridDistance
-grid square semantic unit = canvas.scene.data.gridUnits
-*/
