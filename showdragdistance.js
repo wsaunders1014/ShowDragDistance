@@ -439,3 +439,6 @@ Hooks.on('canvasReady', ()=>{
   canvas.controls._dragRulers = {};
   canvas.controls.drawDragRulers();
 })
+Hooks.on('updateUser', (user,data,diff, id)=>{
+	canvas.controls.getDragRulerForUser(data._id).color = colorStringToHex(data.color);
+})
