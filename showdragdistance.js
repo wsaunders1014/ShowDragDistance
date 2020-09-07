@@ -435,7 +435,9 @@ Hooks.on('ready',()=>{
 	})
 })
 Hooks.on('canvasReady', ()=>{
-
+	canvas.controls.dragRulers = null;
+  canvas.controls._dragRulers = {};
+  canvas.controls.drawDragRulers();
 })
 /*
 
