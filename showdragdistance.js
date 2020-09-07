@@ -292,7 +292,8 @@ class DragRuler extends Ruler{
   	}
 	
 	static init() {
-		
+		// CONFIG.debug.hooks = true;
+		// CONFIG.debug.mouseInteraction = true;
 		// game.settings.register('ShowDragDistance', 'enabled', {
 	 //      name: "ShowDragDistance.enable-s",
 	 //      hint: "ShowDragDistance.enable-l",
@@ -344,12 +345,12 @@ class DragRuler extends Ruler{
 			oldOnDragLeftMove.apply(canvas.tokens.controlled[0],[event])
 		}
 		let oldOnDragLeftCancel = Token.prototype._onDragLeftCancel;
-		PlaceableObject.prototype._onDragLeftCancel = function(event){
-			
+		Token.prototype._onDragLeftCancel = function(event){
+			console.log('custom _onDragLeftCancel')
 			event.stopPropagation();
 		
 				
-			if(canvas.tokens.controlled.length > 0 ){
+			if(canvas.tokens.controlled.length > 0  ){
 				for ( let c of this.layer.preview.children ) {
 			      const o = c._original;
 			      if ( o ) {
@@ -358,14 +359,25 @@ class DragRuler extends Ruler{
 			      }
 			    }
 			    this.layer.preview.removeChildren();
-				canvas.controls.dragRuler.moveToken()
-				canvas.controls.dragRuler._onMouseUp(event)
-				oldOnDragLeftCancel.apply(canvas.tokens.controlled[0],[event])
+				
+				
+				if(canvas.controls.dragRuler.active){
+
+					console.log('active')
+					//canvas.controls.dragRuler._onMouseUp(event)
+					canvas.controls.dragRuler.moveToken()
+					
+				}else{
+					//oldOnDragLeftCancel.apply(this,[event])
+				}
+			}else{
+				oldOnDragLeftCancel.apply(this,[event])
 			}
 			//}
 		}
 		let handleDragCancel = MouseInteractionManager.prototype._handleDragCancel;
 		MouseInteractionManager.prototype._handleDragCancel = function(event){
+			console.log('custom handleDragCancel')
 
 			if(canvas.tokens.controlled.length > 0 && canvas.tokens.controlled[0].mouseInteractionManager.state == 3){
 				switch(event.button){
@@ -377,6 +389,7 @@ class DragRuler extends Ruler{
 						canvas.controls.dragRuler._addWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens));
 						break;
 					default:
+						handleDragCancel.apply(this,[event])
 						break;
 				}
 		 	}else{
@@ -414,6 +427,22 @@ Hooks.on('ready',()=>{
 			case 88:
 				if(canvas.controls.dragRuler.waypoints.length>1)
 					canvas.controls.dragRuler._removeWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens))
+				else{
+					canvas.controls.dragRuler._removeWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens))
+					for ( let c of canvas.tokens.controlled[0].layer.preview.children ) {
+					      const o = c._original;
+					      if ( o ) {
+					        o.data.locked = false;
+					        o.alpha = 1.0;
+					      }
+					    }
+			    	canvas.tokens.controlled[0].layer.preview.removeChildren();
+					canvas.controls.dragRuler._onMouseUp(e)
+					canvas.mouseInteractionManager.state = 1;
+					canvas.tokens.controlled[0].mouseInteractionManager.state = 0
+					canvas.tokens.controlled[0]._onDragLeftCancel(e)
+					//oldOnDragLeftCancel.apply(canvas.tokens.controlled[0],[event])
+				}
 				break;
 			default:
 				break;
@@ -429,7 +458,7 @@ Hooks.on('ready',()=>{
 					canvas.mouseInteractionManager.state = canvas.mouseInteractionManager.states.HOVER
 				}
 				break;
-			default:e
+			default:
 				break;
 		}
 	})
