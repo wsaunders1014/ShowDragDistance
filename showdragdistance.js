@@ -20,7 +20,34 @@ class DragRuler extends Ruler{
   	_onMouseUp(event) {
     	this._endMeasurement();
   	}
-  	measure(destination, {gridSpaces=true}={}) {
+  	_onMouseMove(event,token) {
+	    if ( this._state === Ruler.STATES.MOVING ) return;
+
+	    let speed = (parseInt(token.actor.data.data.attributes.speed.special) > 0) ? parseInt(token.actor.data.data.attributes.speed.value) + parseInt(token.actor.data.data.attributes.speed.special): parseInt(token.actor.data.data.attributes.speed.value)
+	   	this.tokenSpeed = speed;
+	   // Extract event data
+	    const mt = event._measureTime || 0;
+	    const {origin, destination, originalEvent} = event.data;
+
+	    // Check measurement distance
+	    let dx = destination.x - origin.x,
+	        dy = destination.y - origin.y;
+	    if ( Math.hypot(dy, dx) >= canvas.dimensions.size / 2 ) {
+
+	      // Hide any existing Token HUD
+	      canvas.hud.token.clear();
+	      delete event.data.hudState;
+
+	      // Draw measurement updates
+	      if ( Date.now() - mt > 50 ) {
+	        this.measure(destination, {gridSpaces: !originalEvent.shiftKey},speed);
+	        event._measureTime = Date.now();
+	        this._state = Ruler.STATES.MEASURING;
+	      }
+	    }
+  	}
+  	measure(destination, {gridSpaces=true}={},speed=30) {
+  		
 	    destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
 	    const waypoints = this.waypoints.concat([destination]);
 	    const r = this.dragRuler;
@@ -39,18 +66,21 @@ class DragRuler extends Ruler{
 	      segments.push({ray, label});
 	    }
 	    let newSegments = [];
-	 
+	    let remainingSpeed = speed;
+	 	let maxSpeed = speed;
+
 	    // Compute measured distance
 	    const distances = canvas.grid.measureDistances(segments, {gridSpaces});
 	    let distancesTotal = distances.reduce((total,num)=>{return total+num},0)
 	   
-    	this.tokenSpeed = (parseInt(canvas.tokens.controlled[0].actor.data.data.attributes.speed.special) > 0) ? parseInt(canvas.tokens.controlled[0].actor.data.data.attributes.speed.value) + parseInt(canvas.tokens.controlled[0].actor.data.data.attributes.speed.special): parseInt(canvas.tokens.controlled[0].actor.data.data.attributes.speed.value)
+	   	// let actor = (canvas.tokens.controlled.length > 0) ? canvas.tokens.controlled[0].actor:game.user.character;
+    	// this.tokenSpeed = (parseInt(actor.data.data.attributes.speed.special) > 0) ? parseInt(actor.data.data.attributes.speed.value) + parseInt(actor.data.data.attributes.speed.special): parseInt(actor.data.data.attributes.speed.value)
 	 
-	    if(distancesTotal > this.tokenSpeed ){
+	    if(distancesTotal > remainingSpeed){
 	    	let exceeded = false;
  		
  			let dist = 0;
- 			let speed = this.tokenSpeed;
+ 			//let speed = this.tokenSpeed;
 	 		for(let i = 0;i < distances.length;i++){
 	 			dist = distances[i]
 	 		
@@ -58,7 +88,7 @@ class DragRuler extends Ruler{
 	 			if(i==0){
 
 	 				//Speed 20, Movement 40
-	 				if(dist > speed){
+	 				if(dist > remainingSpeed){
 		 				let ray = seg.ray;
 		 			
 		 				let gridSpaces = dist/canvas.scene.data.gridDistance; // 25/5 = 5 grid squares
@@ -66,7 +96,7 @@ class DragRuler extends Ruler{
 		 				let maxGridSpaces = (speed/canvas.scene.data.gridDistance); // 20/5 = 4
 		 				let percent = maxGridSpaces / gridSpaces;
 		 				let maxPoint = ray.project(percent)
-		 				speed = 0; 
+		 				remainingSpeed = 0; 
 		 			
 		 				let x = new Ray(ray.A,maxPoint)
 		 				let newRay = {ray:x}
@@ -83,16 +113,16 @@ class DragRuler extends Ruler{
 
 		 			}else{
 		 				seg.exceeded = false;
-		 				speed -= dist;
+		 				remainingSpeed -= dist;
 		 				newSegments.push(seg);
 		 			}
 		 			
 	 			}else{
-	 				if(speed <=0){ // if segment[0] exceeded, all future segments will be red.
+	 				if(remainingSpeed <=0){ // if segment[0] exceeded, all future segments will be red.
 	 					seg.exceeded = true;
 	 					newSegments.push(seg);
 	 				}else {//first segment did not exceed
-	 					if(dist > speed){
+	 					if(dist > remainingSpeed){
 	 			
 			 				let ray = seg.ray;
 			 				let gridSpaces = dist/canvas.scene.data.gridDistance; // 25/5 = 5 grid squares 			
@@ -102,7 +132,7 @@ class DragRuler extends Ruler{
 			 				let maxPointCenter = canvas.grid.grid.getCenter(maxPoint.x,maxPoint.y)		 				
 			 				let x = new Ray(ray.A,{x:maxPointCenter[0],y:maxPointCenter[1]})
 			 				let newRay = {ray:x}
-			 				speed = 0;
+			 				remainingSpeed = 0;
 			 				newRay.exceeded = false;
 			 				newSegments.push(newRay)
 			 				let newRay2 = {ray:new Ray(x.B,ray.B), label:seg.label}
@@ -113,7 +143,7 @@ class DragRuler extends Ruler{
 
 			 			}else{
 			 				seg.exceeded = false;
-			 				speed -= dist;
+			 				remainingSpeed -= dist;
 			 				newSegments.push(seg);
 			 			}
 	 				}
@@ -133,7 +163,7 @@ class DragRuler extends Ruler{
 	      s.distance = d;
 	      s.text = this._getSegmentLabel(d, totalDistance, s.last);
 	    }
-	    if(distancesTotal > this.tokenSpeed ){
+	    if(distancesTotal > maxSpeed ){
 		    let totalDistance2 = 0;
 		    for ( let [i, d] of newDistances.entries() ) {
 		      totalDistance2 += d;
@@ -169,12 +199,12 @@ class DragRuler extends Ruler{
 	      }
 
 	      // Highlight grid positions
-	      if(distancesTotal <= this.tokenSpeed ){
+	      if(distancesTotal <= maxSpeed ){
 	      	this._highlightMeasurement(ray);
 	      	
 	     }
 	   }
-	    if(distancesTotal > this.tokenSpeed ){
+	    if(distancesTotal > maxSpeed ){
 	  
 		    for( let s of newSegments){
 		    	const {ray,exceeded} = s;
@@ -268,7 +298,7 @@ class DragRuler extends Ruler{
 	    // These rays are center-to-center for the purposes of collision checking
 	    const rays = this._getRaysFromWaypoints(this.waypoints, this.destination);
 	    let hasCollision = rays.some(r => canvas.walls.checkCollision(r));
-	    console.log('hasCollision',hasCollision)
+	   
 	    if ( hasCollision ) {
 	      ui.notifications.error(game.i18n.localize("ERROR.TokenCollide"));
 	      return;
@@ -290,19 +320,67 @@ class DragRuler extends Ruler{
 	    // Once all animations are complete we can clear the ruler
 	    this._endMeasurement();
   	}
-	
+	toJSON() {
+	    return {
+	      class: "DragRuler",
+	      name: `DragRuler.${game.user._id}`,
+	      waypoints: this.waypoints,
+	      destination: this.destination,
+	      _state: this._state,
+	      speed:this.tokenSpeed
+	    }
+ 	}
+ 	_endMeasurement() {
+ 		
+	    this.clear();
+	    game.user.broadcastActivity({dragruler: null});
+	    canvas.mouseInteractionManager.state = MouseInteractionManager.INTERACTION_STATES.HOVER;
+  	}
+
+  	/* -------------------------------------------- */
+
+  	/**
+	   * Update a Ruler instance using data provided through the cursor activity socket
+	   * @param {Object} data   Ruler data with which to update the display
+   	*/
+  	update(data) {
+  	
+	    if ( data.class !== "DragRuler" ) throw new Error("Unable to recreate Ruler instance from provided data");
+
+	    // Populate data
+	    this.waypoints = data.waypoints;
+	    this.destination = data.destination;
+	    this._state = data._state;
+
+	    // Ensure labels are created
+	    for ( let i=0; i<this.waypoints.length - this.labels.children.length; i++) {
+	      this.labels.addChild(new PIXI.Text("", CONFIG.canvasTextStyle));
+	    }
+
+	    // Measure current distance
+	    if ( data.destination ) this.measure(data.destination,{},data.speed);
+  	}
+  	static patchFunction(func, line_number, line, new_line) {
+		let funcStr = func.toString()
+		let lines = funcStr.split("\n")
+		if (lines[line_number].trim() == line.trim()) {
+			let fixed = funcStr.replace(line, new_line)
+			return Function('"use strict";return (function ' + fixed + ')')();
+		}
+		return func;
+	}
 	static init() {
 		// CONFIG.debug.hooks = true;
 		// CONFIG.debug.mouseInteraction = true;
-		// game.settings.register('ShowDragDistance', 'enabled', {
-	 //      name: "ShowDragDistance.enable-s",
-	 //      hint: "ShowDragDistance.enable-l",
-	 //      scope: "client",
-	 //      config: true,
-	 //      default: true,
-	 //      type: Boolean
-	 //      //onChange: x => window.location.reload()
-	 //    });
+	 	game.settings.register('ShowDragDistance', 'enabled', {
+			name: "ShowDragDistance.enable-s",
+			hint: "ShowDragDistance.enable-l",
+			scope: "client",
+			config: true,
+			default: true,
+			type: Boolean
+	      //onChange: x => window.location.reload()
+	    });
 	  	// game.settings.register('ShowDragDistance', 'showPathDefault', {
 	   //    name: "ShowDragDistance.showPath-s",
 	   //    hint: "ShowDragDistance.showPath-l",
@@ -312,6 +390,19 @@ class DragRuler extends Ruler{
 	   //    type: Boolean
 	   //   // onChange: x => window.location.reload()
 	   //  });
+	   let _handleUserActivity = Users._handleUserActivity;
+	   	Users._handleUserActivity = function(userId, activityData={}){
+	   		let user2 = game.users.get(userId);
+	   		let active2 = "active" in activityData ? activityData.active : true;
+	   		// DragRuler measurement
+	   		if ( (active2 === false) || (user2.viewedScene !== canvas.scene.id) ) {
+	   			canvas.controls.updateDragRuler(user2, null);
+	   		}
+		    if ( "dragruler" in activityData ) {
+		      canvas.controls.updateDragRuler(user2, activityData.dragruler);
+		    }
+		    _handleUserActivity(userId,activityData)
+		}
 	 	game.settings.register('ShowDragDistance', 'rangeFinder', {
 	      name: "ShowDragDistance.rangeFinder-s",
 	      hint: "ShowDragDistance.rangeFinder-l",
@@ -321,6 +412,7 @@ class DragRuler extends Ruler{
 	      type: Boolean
 	     // onChange: x => window.location.reload()
 	    });
+	
 	    ControlsLayer.prototype.drawDragRulers = function() {
 		    this.dragRulers = this.addChild(new PIXI.Container());
 		    for (let u of game.users.entities) {
@@ -331,25 +423,35 @@ class DragRuler extends Ruler{
 		ControlsLayer.prototype.getDragRulerForUser = function(userId) {
 		  return this._dragRulers[userId] || null;
 		}
+		ControlsLayer.prototype.updateDragRuler = function(user, dragRulerData) {
 
+		    // Update the Ruler display for the user
+		    let dragRuler = this.getDragRulerForUser(user.id);
+		    if ( !dragRuler ) return;
+		    if ( dragRulerData === null ) dragRuler.clear();
+		    else dragRuler.update(dragRulerData);
+	  	}
 		
 		let oldOnDragLeftStart = Token.prototype._onDragLeftStart;
 		Token.prototype._onDragLeftStart = function(event){
-
-			canvas.controls.dragRuler._onDragStart(event)
-			oldOnDragLeftStart.apply(canvas.tokens.controlled[0],[event])
+			if(game.settings.get('ShowDragDistance','enabled') === true)
+				canvas.controls.dragRuler._onDragStart(event)
+			oldOnDragLeftStart.apply(this,[event])
 		}
 		let oldOnDragLeftMove = Token.prototype._onDragLeftMove;
 		Token.prototype._onDragLeftMove = function(event){
-			canvas.controls.dragRuler._onMouseMove(event)
+			if(canvas.controls.dragRuler.active){
+				canvas.controls.dragRuler._onMouseMove(event,this)
+				const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
+				game.user.broadcastActivity({dragruler:dragruler})
+			}
+			
 			oldOnDragLeftMove.apply(canvas.tokens.controlled[0],[event])
 		}
 		let oldOnDragLeftCancel = Token.prototype._onDragLeftCancel;
 		Token.prototype._onDragLeftCancel = function(event){
-			console.log('custom _onDragLeftCancel')
 			event.stopPropagation();
 		
-				
 			if(canvas.tokens.controlled.length > 0  ){
 				for ( let c of this.layer.preview.children ) {
 			      const o = c._original;
@@ -362,9 +464,7 @@ class DragRuler extends Ruler{
 				
 				
 				if(canvas.controls.dragRuler.active){
-
-					console.log('active')
-					//canvas.controls.dragRuler._onMouseUp(event)
+					const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
 					canvas.controls.dragRuler.moveToken()
 					
 				}else{
@@ -377,8 +477,6 @@ class DragRuler extends Ruler{
 		}
 		let handleDragCancel = MouseInteractionManager.prototype._handleDragCancel;
 		MouseInteractionManager.prototype._handleDragCancel = function(event){
-			console.log('custom handleDragCancel')
-
 			if(canvas.tokens.controlled.length > 0 && canvas.tokens.controlled[0].mouseInteractionManager.state == 3){
 				switch(event.button){
 					case 0:
@@ -465,8 +563,8 @@ Hooks.on('ready',()=>{
 })
 Hooks.on('canvasReady', ()=>{
 	canvas.controls.dragRulers = null;
-  canvas.controls._dragRulers = {};
-  canvas.controls.drawDragRulers();
+ 	canvas.controls._dragRulers = {};
+ 	canvas.controls.drawDragRulers();
 })
 Hooks.on('updateUser', (user,data,diff, id)=>{
 	canvas.controls.getDragRulerForUser(data._id).color = colorStringToHex(data.color);

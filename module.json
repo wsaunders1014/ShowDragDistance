@@ -9,6 +9,7 @@
   "scripts": [
   	"showdragdistance.js"
   ],
+  "socket": true,
   "languages": [
     {
       "lang": "en",

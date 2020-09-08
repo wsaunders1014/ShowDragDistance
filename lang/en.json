@@ -4,5 +4,5 @@
 	"ShowDragDistance.showPath-s":"Show Path by Default?",
 	"ShowDragDistance.showPath-l":"Shows path on drag as default, press CTRL to hide it. If disabled, path is hidden and CTRL shows it.",
 	"ShowDragDistance.rangeFinder-s":"Enable Rangefinder?",
-	"ShowDragDistance.rangeFinder-l":"Enable holding 'R' key to show range from selected token on mouse move."
+	"ShowDragDistance.rangeFinder-l":"Enable holding 'ctrl' key to show range from selected token on mouse move."
 }
