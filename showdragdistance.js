@@ -47,7 +47,7 @@ class DragRuler extends Ruler{
 	    }
   	}
   	measure(destination, {gridSpaces=true}={},speed=30) {
-  		
+
 	    destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
 	    const waypoints = this.waypoints.concat([destination]);
 	    const r = this.dragRuler;
@@ -300,6 +300,7 @@ class DragRuler extends Ruler{
 	    let hasCollision = rays.some(r => canvas.walls.checkCollision(r));
 	   
 	    if ( hasCollision ) {
+	   	  this._endMeasurement();
 	      ui.notifications.error(game.i18n.localize("ERROR.TokenCollide"));
 	      return;
 	    }
