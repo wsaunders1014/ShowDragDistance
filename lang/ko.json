@@ -1,0 +1,8 @@
+{
+	"ShowDragDistance.enable-s":"드래그시 거리 표시 활성화",
+	"ShowDragDistance.enable-l":"드래그시 토큰이 이동하는 거리를 캔버스에서 Ctrl 키를 유지하며 드래그하는 것과 유사하게 표시한다. 마우스 우클릭으로 경유지를 만든다. 경유지를 삭제하려면 X를 누른다.",
+	"ShowDragDistance.showPath-s":"이동 경로 표시를 기본값으로 설정",
+	"ShowDragDistance.showPath-l":"드래그를 통한 경로 표시를 기본값으로 표시한다. Ctrl키를 눌러 경로를 숨기며 비활성화될 경우 경로가 숨겨지며 Ctrl 키를 통해 표시된다.",
+	"ShowDragDistance.rangeFinder-s":"거리 측정기 활성화",
+	"ShowDragDistance.rangeFinder-l":"활성화할 경우 마우스 이동 시 'Ctrl'키를 유지하면 선택한 토큰의 범위가 표시된다 ."
+}
