@@ -1,14 +1,19 @@
 let showDragDistance = true;
 let handleDragCancel;
 let rangeFinder = false;
+let ctrlPressed = false;
 class DragRuler extends Ruler{
 	constructor(user, {color=null}={}) {
-	    super();
+		
+	    super()
+	    this.user = user;
 	    this.dragRuler = this.addChild(new PIXI.Graphics());
 	    this.ruler = null;
 	    this.tokenSpeed = null;
 	    this.name = `DragRuler.${user._id}`;
+	    this.color = color || colorStringToHex(this.user.data.color) || 0x42F4E2;
 	    canvas.grid.addHighlightLayer(this.name);
+	   
   	}
    	clear() {
 	    this._state = Ruler.STATES.INACTIVE;
@@ -22,7 +27,7 @@ class DragRuler extends Ruler{
   	}
   	_onMouseMove(event,token) {
 	    if ( this._state === Ruler.STATES.MOVING ) return;
-
+	  
 	    let speed = (parseInt(token.actor.data.data.attributes.speed.special) > 0) ? parseInt(token.actor.data.data.attributes.speed.value) + parseInt(token.actor.data.data.attributes.speed.special): parseInt(token.actor.data.data.attributes.speed.value)
 	   	this.tokenSpeed = speed;
 	   // Extract event data
@@ -93,7 +98,7 @@ class DragRuler extends Ruler{
 		 			
 		 				let gridSpaces = dist/canvas.scene.data.gridDistance; // 25/5 = 5 grid squares
 		 		
-		 				let maxGridSpaces = (speed/canvas.scene.data.gridDistance); // 20/5 = 4
+		 				let maxGridSpaces = (remainingSpeed/canvas.scene.data.gridDistance); // 20/5 = 4
 		 				let percent = maxGridSpaces / gridSpaces;
 		 				let maxPoint = ray.project(percent)
 		 				remainingSpeed = 0; 
@@ -126,7 +131,7 @@ class DragRuler extends Ruler{
 	 			
 			 				let ray = seg.ray;
 			 				let gridSpaces = dist/canvas.scene.data.gridDistance; // 25/5 = 5 grid squares 			
-			 				let maxGridSpaces = (speed/canvas.scene.data.gridDistance); // 20/5 = 4
+			 				let maxGridSpaces = (remainingSpeed/canvas.scene.data.gridDistance); // 20/5 = 4
 			 				let percent = maxGridSpaces / gridSpaces;	
 			 				let maxPoint = ray.project(percent)
 			 				let maxPointCenter = canvas.grid.grid.getCenter(maxPoint.x,maxPoint.y)		 				
@@ -393,6 +398,7 @@ class DragRuler extends Ruler{
 	   //  });
 	   let _handleUserActivity = Users._handleUserActivity;
 	   	Users._handleUserActivity = function(userId, activityData={}){
+	   		
 	   		let user2 = game.users.get(userId);
 	   		let active2 = "active" in activityData ? activityData.active : true;
 	   		// DragRuler measurement
@@ -425,7 +431,7 @@ class DragRuler extends Ruler{
 		  return this._dragRulers[userId] || null;
 		}
 		ControlsLayer.prototype.updateDragRuler = function(user, dragRulerData) {
-
+			if ( user === game.user) return;
 		    // Update the Ruler display for the user
 		    let dragRuler = this.getDragRulerForUser(user.id);
 		    if ( !dragRuler ) return;
@@ -512,6 +518,7 @@ Hooks.on('ready',()=>{
 		
 		switch(e.which){
 			case 17:
+				ctrlPressed = true;
 				if(canvas.controls.dragRuler.active == false && e.originalEvent.location == 1 && !rangeFinder && canvas.tokens.controlled.length>0 && game.settings.get('ShowDragDistance','rangeFinder') === true && canvas.mouseInteractionManager.state !=0){
 					rangeFinder = true;
 					canvas.controls.ruler._state = Ruler.STATES.MEASURING;
@@ -550,6 +557,7 @@ Hooks.on('ready',()=>{
 	$('body').on('keyup',(e)=>{
 		switch(e.which){
 			case 17:
+				ctrlPressed = false;
 				if(rangeFinder && canvas.tokens.controlled.length>0){
 					rangeFinder = false;
 					canvas.controls.ruler._endMeasurement();
