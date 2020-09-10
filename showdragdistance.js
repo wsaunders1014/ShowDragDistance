@@ -35,7 +35,7 @@ class DragRuler extends Ruler{
 
   		const bonusSpeed = (TokenSpeedAttributes.bonus != "" && getProperty(token,TokenSpeedAttributes.bonus) !="") ? parseInt(getProperty(token,TokenSpeedAttributes.bonus)):0;
   		const flagBonusSpeed = (typeof token.getFlag('ShowDragDistance','speed') !='undefined') ? token.getFlag('ShowDragDistance','speed').normal:0;
-  		const normalSpeed = baseSpeed + bonusSpeed + flagBonusSpeed;
+  		const normalSpeed = baseSpeed + flagBonusSpeed;
   		const flagDashSpeed = (typeof token.getFlag('ShowDragDistance','speed') !='undefined') ? token.getFlag('ShowDragDistance','speed').dash:0;
   		const dashSpeed = (normalSpeed + flagDashSpeed) * game.settings.get('ShowDragDistance','dashX');
   			
@@ -360,14 +360,14 @@ class DragRuler extends Ruler{
 	    this.waypoints = data.waypoints;
 	    this.destination = data.destination;
 	    this._state = data._state;
-
+	    this.tokenSpeed = data.speed;
 	    // Ensure labels are created
 	    for ( let i=0; i<this.waypoints.length - this.labels.children.length; i++) {
 	      this.labels.addChild(new PIXI.Text("", CONFIG.canvasTextStyle));
 	    }
 
 	    // Measure current distance
-	    if ( data.destination ) this.measure(data.destination,{},data.speed);
+	    if ( data.destination ) this.measure(data.destination,{});
   	}
   	static patchFunction(func, line_number, line, new_line) {
 		let funcStr = func.toString()
@@ -589,7 +589,7 @@ Hooks.on('ready',()=>{
 		switch(e.which){
 			case 17:
 				ctrlPressed = true;
-				if(canvas.controls.dragRuler.active == false && e.originalEvent.location == 1 && !rangeFinder && canvas.tokens.controlled.length>0 && game.settings.get('ShowDragDistance','rangeFinder') === true && canvas.mouseInteractionManager.state !=0){
+				if(canvas.controls.dragRuler.active == false && e.originalEvent.location == 1 && !rangeFinder && canvas.tokens.controlled.length>0 && game.settings.get('ShowDragDistance','rangeFinder') === true && canvas.mouseInteractionManager.state !=0 && game.activeTool !='ruler'){
 					rangeFinder = true;
 					canvas.controls.ruler._state = Ruler.STATES.MEASURING;
 					canvas.controls.ruler._addWaypoint(canvas.tokens.controlled[0].center)
@@ -618,6 +618,11 @@ Hooks.on('ready',()=>{
 					canvas.tokens.controlled[0].mouseInteractionManager.state = 0
 					canvas.tokens.controlled[0]._onDragLeftCancel(e)
 					//oldOnDragLeftCancel.apply(canvas.tokens.controlled[0],[event])
+				}
+				break;
+			case 80:
+				if(canvas.controls.dragRuler.active){
+					canvas.controls.dragRuler._addWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens))
 				}
 				break;
 			default:
