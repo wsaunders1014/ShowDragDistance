@@ -429,7 +429,7 @@ class DragRuler extends Ruler{
 	    game.settings.register('ShowDragDistance', 'maxSpeedColor', {
 			name: "ShowDragDistance.maxSpeedColor-s",
 			hint: "ShowDragDistance.maxSpeedColor-l",
-			scope: "world",
+			scope: "client",
 			config: true,
 			default: '#FF0000',
 			type: String
@@ -456,7 +456,7 @@ class DragRuler extends Ruler{
 	   game.settings.register('ShowDragDistance', 'dashSpeedColor', {
 			name: "ShowDragDistance.dashSpeedColor-s",
 			hint: "ShowDragDistance.dashSpeedColor-l",
-			scope: "world",
+			scope: "client",
 			config: true,
 			default: '#00FF00',
 			type: String

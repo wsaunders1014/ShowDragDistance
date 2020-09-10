@@ -6,6 +6,8 @@ Rangefinder: With a single token selected, hold CTRL on the canvas and it will d
 Default ruler behaviour is unchanged.
 
 # Changelog
+2.1.0 - Added dash measurement, added configurability to work better with other systems. 
+
 2.0.5 - Fix issue with distance calculation when you set waypoint before exceeding movement speed. Changed broadcast ruler color to be correct user color instead of using player's color.
 
 2.0.4 - Added ruler broadcasting to others.
