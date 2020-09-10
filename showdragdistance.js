@@ -2,6 +2,7 @@ let showDragDistance = true;
 let handleDragCancel;
 let rangeFinder = false;
 let ctrlPressed = false;
+const TokenSpeedAttributes = {base:"",bonus:""};
 class DragRuler extends Ruler{
 	constructor(user, {color=null}={}) {
 		
@@ -12,6 +13,7 @@ class DragRuler extends Ruler{
 	    this.tokenSpeed = null;
 	    this.name = `DragRuler.${user._id}`;
 	    this.color = color || colorStringToHex(this.user.data.color) || 0x42F4E2;
+	    this.tokenSpeed = {normal:null,bonus:null}
 	    canvas.grid.addHighlightLayer(this.name);
 	   
   	}
@@ -22,14 +24,32 @@ class DragRuler extends Ruler{
 	    this.labels.removeChildren().forEach(c => c.destroy());
 	    canvas.grid.clearHighlightLayer(this.name);
   	}
+  	_onDragStart(event) {
+	    this.clear();
+	    this._state = Ruler.STATES.STARTING;
+	    this._addWaypoint(event.data.origin);
+	    this.tokenSpeed = this.getTokenSpeed(this.getToken)
+  	}
+  	getTokenSpeed(token){
+  		const baseSpeed = parseInt(getProperty(token,TokenSpeedAttributes.base));
+
+  		const bonusSpeed = (TokenSpeedAttributes.bonus != "" && getProperty(token,TokenSpeedAttributes.bonus) !="") ? parseInt(getProperty(token,TokenSpeedAttributes.bonus)):0;
+  		const flagBonusSpeed = (typeof token.getFlag('ShowDragDistance','speed') !='undefined') ? token.getFlag('ShowDragDistance','speed').normal:0;
+  		const normalSpeed = baseSpeed + bonusSpeed + flagBonusSpeed;
+  		const flagDashSpeed = (typeof token.getFlag('ShowDragDistance','speed') !='undefined') ? token.getFlag('ShowDragDistance','speed').dash:0;
+  		const dashSpeed = (normalSpeed + flagDashSpeed) * game.settings.get('ShowDragDistance','dashX');
+  			
+  		return {normal:normalSpeed,dash:dashSpeed}
+  	}
   	_onMouseUp(event) {
     	this._endMeasurement();
   	}
-  	_onMouseMove(event,token) {
+  	_onMouseMove(event) {
 	    if ( this._state === Ruler.STATES.MOVING ) return;
-	  
-	    let speed = (parseInt(token.actor.data.data.attributes.speed.special) > 0) ? parseInt(token.actor.data.data.attributes.speed.value) + parseInt(token.actor.data.data.attributes.speed.special): parseInt(token.actor.data.data.attributes.speed.value)
-	   	this.tokenSpeed = speed;
+	   
+	  	// if(game.settings.get('ShowDragDistance','maxSpeed') === true){
+		    
+	   //  }
 	   // Extract event data
 	    const mt = event._measureTime || 0;
 	    const {origin, destination, originalEvent} = event.data;
@@ -45,13 +65,14 @@ class DragRuler extends Ruler{
 
 	      // Draw measurement updates
 	      if ( Date.now() - mt > 50 ) {
-	        this.measure(destination, {gridSpaces: !originalEvent.shiftKey},speed);
+	      
+        	this.measure(destination, {gridSpaces: !originalEvent.shiftKey});
 	        event._measureTime = Date.now();
 	        this._state = Ruler.STATES.MEASURING;
 	      }
 	    }
   	}
-  	measure(destination, {gridSpaces=true}={},speed=30) {
+  	measure(destination, {gridSpaces=true}={}) {
 
 	    destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
 	    const waypoints = this.waypoints.concat([destination]);
@@ -70,96 +91,71 @@ class DragRuler extends Ruler{
 	      }
 	      segments.push({ray, label});
 	    }
-	    let newSegments = [];
-	    let remainingSpeed = speed;
-	 	let maxSpeed = speed;
-
+	    
+	 	
 	    // Compute measured distance
 	    const distances = canvas.grid.measureDistances(segments, {gridSpaces});
 	    let distancesTotal = distances.reduce((total,num)=>{return total+num},0)
-	   
-	   	// let actor = (canvas.tokens.controlled.length > 0) ? canvas.tokens.controlled[0].actor:game.user.character;
-    	// this.tokenSpeed = (parseInt(actor.data.data.attributes.speed.special) > 0) ? parseInt(actor.data.data.attributes.speed.value) + parseInt(actor.data.data.attributes.speed.special): parseInt(actor.data.data.attributes.speed.value)
-	 
-	    if(distancesTotal > remainingSpeed){
-	    	let exceeded = false;
- 		
- 			let dist = 0;
- 			//let speed = this.tokenSpeed;
-	 		for(let i = 0;i < distances.length;i++){
-	 			dist = distances[i]
-	 		
-	 			let seg = segments[i];
-	 			if(i==0){
+	   	
+   	  	let remainingSpeed = (this.tokenSpeed.normal != null) ? this.tokenSpeed.normal:null;
+	    let dashSpeed = (this.tokenSpeed.dash !== null) ? this.tokenSpeed.dash: null;
+	 	let maxSpeed = remainingSpeed;
+	 	let newSegments = [];
+	  
+ 		if(game.settings.get('ShowDragDistance','maxSpeed') && distancesTotal > maxSpeed){
+ 			for(let i = 0;i<distances.length;i++){
+ 				let dist = distances[i]; //40
+ 				
+ 				let seg = segments[i];
+ 				let ray = seg.ray;
+ 				let gridSpaces = dist/canvas.scene.data.gridDistance; //40/5 = 80
+ 				let maxGridSpaces,percent=0,maxPoint,newRay;
 
-	 				//Speed 20, Movement 40
-	 				if(dist > remainingSpeed){
-		 				let ray = seg.ray;
-		 			
-		 				let gridSpaces = dist/canvas.scene.data.gridDistance; // 25/5 = 5 grid squares
-		 		
-		 				let maxGridSpaces = (remainingSpeed/canvas.scene.data.gridDistance); // 20/5 = 4
-		 				let percent = maxGridSpaces / gridSpaces;
-		 				let maxPoint = ray.project(percent)
-		 				remainingSpeed = 0; 
-		 			
-		 				let x = new Ray(ray.A,maxPoint)
-		 				let newRay = {ray:x}
-		 				newRay.exceeded = false;
-		 				if ( ray.distance < (0.2 * canvas.grid.size) ) {
-	        				if ( label ) label.visible = false;
-	        			}
-		 				newSegments.push(newRay)
-		 				let newRay2 = {ray:new Ray(x.B,ray.B), label:seg.label}
-		 				newRay2.exceeded = true;
-		 				newSegments.push(newRay2)
-		 		
-		 				exceeded = true;
-
-		 			}else{
-		 				seg.exceeded = false;
-		 				remainingSpeed -= dist;
-		 				newSegments.push(seg);
-		 			}
-		 			
-	 			}else{
-	 				if(remainingSpeed <=0){ // if segment[0] exceeded, all future segments will be red.
-	 					seg.exceeded = true;
-	 					newSegments.push(seg);
-	 				}else {//first segment did not exceed
-	 					if(dist > remainingSpeed){
-	 			
-			 				let ray = seg.ray;
-			 				let gridSpaces = dist/canvas.scene.data.gridDistance; // 25/5 = 5 grid squares 			
-			 				let maxGridSpaces = (remainingSpeed/canvas.scene.data.gridDistance); // 20/5 = 4
-			 				let percent = maxGridSpaces / gridSpaces;	
-			 				let maxPoint = ray.project(percent)
-			 				let maxPointCenter = canvas.grid.grid.getCenter(maxPoint.x,maxPoint.y)		 				
-			 				let x = new Ray(ray.A,{x:maxPointCenter[0],y:maxPointCenter[1]})
-			 				let newRay = {ray:x}
-			 				remainingSpeed = 0;
-			 				newRay.exceeded = false;
-			 				newSegments.push(newRay)
-			 				let newRay2 = {ray:new Ray(x.B,ray.B), label:seg.label}
-			 				newRay2.exceeded = true;
-			 				newSegments.push(newRay2)
-			 				
-			 				exceeded = true;
-
-			 			}else{
-			 				seg.exceeded = false;
-			 				remainingSpeed -= dist;
-			 				newSegments.push(seg);
-			 			}
-	 				}
-	 			
-
+ 				if(remainingSpeed > 0){ //10
+ 					maxGridSpaces = (remainingSpeed/canvas.scene.data.gridDistance); // 10/5 = 2
+	 				percent = (maxGridSpaces / gridSpaces > 1) ? 1:maxGridSpaces / gridSpaces; // 2/8 = 0.25
+	 				maxPoint = ray.project(percent) // Finds a point n% down the ray, which is the last square that the player can reach.
+	 				newRay = {ray:new Ray(ray.A,maxPoint)} 
+	 				newRay.exceeded = false;
+	 				newRay.dash = false;
+					newSegments.push(newRay);
+					if(remainingSpeed > dist){
+						remainingSpeed -=dist;
+						dist =0;
+					}else{
+						dist -=remainingSpeed;
+						remainingSpeed = 0;
+					}
 	 			}
-	 			
-	 		}
+				if(game.settings.get('ShowDragDistance','dash') && dashSpeed > 0 && dist > 0){
+					maxGridSpaces = (dashSpeed/canvas.scene.data.gridDistance); // 10/5 = 2
+	 				percent = ((maxGridSpaces / gridSpaces) + percent > 1) ? 1:(maxGridSpaces / gridSpaces) + percent; // 2/8 = 0.25
+	 				maxPoint = ray.project(percent) // Finds a point n% down the ray, which is the last square that the player can reach.
+	 				
+	 				
+	 				newRay = {ray:new Ray(newSegments[newSegments.length -1].ray.B,maxPoint)} 
+	 				newRay.exceeded = true;
+	 				newRay.dash = true;
+					newSegments.push(newRay);
+
+	 				if(dashSpeed > dist){
+						dashSpeed -=dist;
+						dist =0;
+					}else{
+						dist -=dashSpeed;
+						dashSpeed = 0;
+					}
+				}
+ 				if(dist > 0){
+ 					newRay = {ray:new Ray(newSegments[newSegments.length -1].ray.B,ray.B)} 
+	 				newRay.exceeded = true;
+	 				newRay.dash = false;
+	 				newSegments.push(newRay);
+ 				}
+ 			}
  		}
-	 	const newDistances = canvas.grid.measureDistances(newSegments, {gridSpaces});
-	   
+	 
+	   	
 	    let totalDistance = 0;
 	    for ( let [i, d] of distances.entries() ) {
 	      totalDistance += d;
@@ -168,17 +164,7 @@ class DragRuler extends Ruler{
 	      s.distance = d;
 	      s.text = this._getSegmentLabel(d, totalDistance, s.last);
 	    }
-	    if(distancesTotal > maxSpeed ){
-		    let totalDistance2 = 0;
-		    for ( let [i, d] of newDistances.entries() ) {
-		      totalDistance2 += d;
-		      let s = newSegments[i];
-		      s.last = i === (newSegments.length - 1);
-		      s.distance = d;
-		      s.text = this._getSegmentLabel(d, totalDistance2, s.last);
-		    }
-		    
-		}
+	    
 	 
 	    // Clear the grid highlight layer
 	    const hlt = canvas.grid.highlightLayers[this.name];
@@ -204,19 +190,28 @@ class DragRuler extends Ruler{
 	      }
 
 	      // Highlight grid positions
-	      if(distancesTotal <= maxSpeed ){
-	      	this._highlightMeasurement(ray);
-	      	
-	     }
-	   }
-	    if(distancesTotal > maxSpeed ){
-	  
-		    for( let s of newSegments){
-		    	const {ray,exceeded} = s;
-		    	this._highlightMeasurement(ray,exceeded);
-		    }
+	      //if(speed === null){
+		      if(distancesTotal <= maxSpeed || game.settings.get('ShowDragDistance','maxSpeed') === false ){
+		      	this._highlightMeasurement(ray);
+		      }
+		  //}
+	    }
+	    if(game.settings.get('ShowDragDistance','maxSpeed')){
+	    	
+		    if(distancesTotal > maxSpeed ){
+		  
+			    for( let s of newSegments){
+			    	
+			    	if(game.settings.get('ShowDragDistance','dash')){
+			    		const {ray,exceeded,dash} = s;
+			    		this._highlightMeasurement(ray,exceeded,dash);
+			    	}else{
+			    		const {ray,exceeded} = s;
+			    		this._highlightMeasurement(ray,exceeded);
+			    	}
+			    }
+			}
 		}
-		
 	    // Draw endpoints
 	    for ( let p of waypoints ) {
 	      r.lineStyle(2, 0x000000, 0.5).beginFill(this.color, 0.25).drawCircle(p.x, p.y, 8);
@@ -240,8 +235,13 @@ class DragRuler extends Ruler{
 	      return pos.contains(x0, y0);
 	    });
   	}
-  	_highlightMeasurement(ray,exceeded=false) {
-  		let color = (exceeded) ? colorStringToHex('#ff0000'):this.color;
+  	
+  	_highlightMeasurement(ray,exceeded=false,dash=false) {
+  		
+  		let color = (exceeded) ? colorStringToHex(game.settings.get('ShowDragDistance','maxSpeedColor')):this.color;
+  		if(dash){
+  			color =colorStringToHex(game.settings.get('ShowDragDistance','dashSpeedColor'))
+  		}
 	    const spacer = canvas.scene.data.gridType === CONST.GRID_TYPES.SQUARE ? 1.41 : 1;
 	 
 	    let nMax = Math.max(Math.floor(ray.distance / (spacer * Math.min(canvas.grid.w, canvas.grid.h))), 1);
@@ -320,6 +320,7 @@ class DragRuler extends Ruler{
 	      const path = new Ray({x: token.x, y: token.y}, {x: dest[0] + dx, y: dest[1] + dy});
 	      await token.update(path.B);
 	      await token.animateMovement(path);
+	      Hooks.call('moveToken', token, this)
 	    }
 	    token._noAnimate = false;
 
@@ -344,7 +345,9 @@ class DragRuler extends Ruler{
   	}
 
   	/* -------------------------------------------- */
-
+  	get getToken(){
+  		return canvas.tokens.controlled.length > 0 ? canvas.tokens.controlled[0]:null;
+  	}
   	/**
 	   * Update a Ruler instance using data provided through the cursor activity socket
 	   * @param {Object} data   Ruler data with which to update the display
@@ -387,6 +390,78 @@ class DragRuler extends Ruler{
 			type: Boolean
 	      //onChange: x => window.location.reload()
 	    });
+	    game.settings.register('ShowDragDistance', 'rangeFinder', {
+	      name: "ShowDragDistance.rangeFinder-s",
+	      hint: "ShowDragDistance.rangeFinder-l",
+	      scope: "client",
+	      config: true,
+	      default: true,
+	      type: Boolean
+	     // onChange: x => window.location.reload()
+	    });
+	    game.settings.register('ShowDragDistance', 'baseSpeedAttr', {
+	      name: "ShowDragDistance.baseSpeedAttr-s",
+	      hint: "ShowDragDistance.baseSpeedAttr-l",
+	      scope: "world",
+	      config: true,
+	      default: "actor.data.data.attributes.speed.value",
+	      type: String,
+	      onChange: x => window.location.reload()
+	    });
+	    game.settings.register('ShowDragDistance', 'bonusSpeedAttr', {
+	      name: "ShowDragDistance.bonusSpeedAttr-s",
+	      hint: "ShowDragDistance.bonusSpeedAttr-l",
+	      scope: "world",
+	      config: true,
+	      default: "actor.data.data.attributes.speed.special",
+	      type: String,
+	      onChange: x => window.location.reload()
+	    });
+	    game.settings.register('ShowDragDistance', 'maxSpeed', {
+			name: "ShowDragDistance.maxSpeed-s",
+			hint: "ShowDragDistance.maxSpeed-l",
+			scope: "world",
+			config: true,
+			default: true,
+			type: Boolean
+	      //onChange: x => window.location.reload()
+	    });
+	    game.settings.register('ShowDragDistance', 'maxSpeedColor', {
+			name: "ShowDragDistance.maxSpeedColor-s",
+			hint: "ShowDragDistance.maxSpeedColor-l",
+			scope: "world",
+			config: true,
+			default: '#FF0000',
+			type: String
+	      //onChange: x => window.location.reload()
+	    });
+	    game.settings.register('ShowDragDistance', 'dash', {
+			name: "ShowDragDistance.dash-s",
+			hint: "ShowDragDistance.dash-l",
+			scope: "world",
+			config: true,
+			default: true,
+			type: Boolean
+	      //onChange: x => window.location.reload()
+	    });
+	    game.settings.register('ShowDragDistance', 'dashX', {
+			name: "ShowDragDistance.dashX-s",
+			hint: "ShowDragDistance.dashX-l",
+			scope: "world",
+			config: true,
+			default: 1,
+			type: Number
+	      //onChange: x => window.location.reload()
+       });
+	   game.settings.register('ShowDragDistance', 'dashSpeedColor', {
+			name: "ShowDragDistance.dashSpeedColor-s",
+			hint: "ShowDragDistance.dashSpeedColor-l",
+			scope: "world",
+			config: true,
+			default: '#00FF00',
+			type: String
+	      //onChange: x => window.location.reload()
+	    });
 	  	// game.settings.register('ShowDragDistance', 'showPathDefault', {
 	   //    name: "ShowDragDistance.showPath-s",
 	   //    hint: "ShowDragDistance.showPath-l",
@@ -396,6 +471,9 @@ class DragRuler extends Ruler{
 	   //    type: Boolean
 	   //   // onChange: x => window.location.reload()
 	   //  });
+	   TokenSpeedAttributes.base = game.settings.get('ShowDragDistance','baseSpeedAttr');
+	   TokenSpeedAttributes.bonus = (game.settings.get('ShowDragDistance','bonusSpeedAttr') !== '') ? game.settings.get('ShowDragDistance','bonusSpeedAttr'):"";
+
 	   let _handleUserActivity = Users._handleUserActivity;
 	   	Users._handleUserActivity = function(userId, activityData={}){
 	   		
@@ -410,15 +488,7 @@ class DragRuler extends Ruler{
 		    }
 		    _handleUserActivity(userId,activityData)
 		}
-	 	game.settings.register('ShowDragDistance', 'rangeFinder', {
-	      name: "ShowDragDistance.rangeFinder-s",
-	      hint: "ShowDragDistance.rangeFinder-l",
-	      scope: "client",
-	      config: true,
-	      default: true,
-	      type: Boolean
-	     // onChange: x => window.location.reload()
-	    });
+	 	
 	
 	    ControlsLayer.prototype.drawDragRulers = function() {
 		    this.dragRulers = this.addChild(new PIXI.Container());
@@ -565,6 +635,7 @@ Hooks.on('ready',()=>{
 					canvas.mouseInteractionManager.state = canvas.mouseInteractionManager.states.HOVER
 				}
 				break;
+
 			default:
 				break;
 		}
@@ -577,4 +648,11 @@ Hooks.on('canvasReady', ()=>{
 })
 Hooks.on('updateUser', (user,data,diff, id)=>{
 	canvas.controls.getDragRulerForUser(data._id).color = colorStringToHex(data.color);
-})
+})/*
+const actorSpeedValue = token.actor.data. + 
+game.settings.get('ShowDragDistance','actorSpeedLocation');
+const baseSpeed = actor.get(actorSpeedValue) || game.settings.get('ShowDragDistance','baseSpeedDefault');
+const baseDashType = game.settings.get('ShowDragDistance','baseDashType'); // 'multiplier' or 'value'
+const actorDashValue = token.actor.data. + game.settings.get('ShowDragDistance','actorDashLocation');
+const baseDash = actor.get(actorDashValue) || game.settings.get('ShowDragDistance','baseDashDefault');
+const dashValue = baseDashType == "multiply" ? baseSpeed * baseDash : baseSpeed + baseDash;*/

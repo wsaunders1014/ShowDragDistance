@@ -4,5 +4,19 @@
 	"ShowDragDistance.showPath-s":"Show Path by Default?",
 	"ShowDragDistance.showPath-l":"Shows path on drag as default, press CTRL to hide it. If disabled, path is hidden and CTRL shows it.",
 	"ShowDragDistance.rangeFinder-s":"Enable Rangefinder?",
-	"ShowDragDistance.rangeFinder-l":"Enable holding 'ctrl' key to show range from selected token on mouse move."
+	"ShowDragDistance.rangeFinder-l":"Enable holding 'ctrl' key to show range from selected token on mouse move.",
+	"ShowDragDistance.maxSpeed-s":"Enable Max Speed Color Change?",
+	"ShowDragDistance.maxSpeed-l":"Drag Ruler will change color based on max speed of token. Might conflict with some modules or systems.",
+	"ShowDragDistance.dash-s":"Enable Dash Color Change?",
+	"ShowDragDistance.dash-l":"Drag Ruler will show different color for squares within dashing speed.",
+	"ShowDragDistance.dashX-s":"Dash Multiplier",
+	"ShowDragDistance.dashX-l":"A number to multiply base movement speed for dashing. For DnD5e, this would be 1.",
+	"ShowDragDistance.baseSpeedAttr-s":"Base Speed Attribute",
+	"ShowDragDistance.baseSpeedAttr-l":"Enter the object property path from the Token entity to where the speed is located, ie for DND5e, 'actor.data.data.attributes.speed.value'",
+	"ShowDragDistance.bonusSpeedAttr-s":"Bonus Speed Attribute",
+	"ShowDragDistance.bonusSpeedAttr-l":"If system has a bonus or special property, enter it here, otherwise leave it blank. Example(DnD5e):actor.data.data.attributes.speed.special",
+	"ShowDragDistance.maxSpeedColor-s": "Max Speed Color",
+	"ShowDragDistance.maxSpeedColor-l":"Enter the color to show when player has exceeded their movement speed.",
+	"ShowDragDistance.dashSpeedColor-s":"Dash Speed Color",
+	"ShowDragDistance.dashSpeedColor-l":"The color shown to indicate a token's dash movement."
 }
