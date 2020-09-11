@@ -2,6 +2,7 @@ let showDragDistance = true;
 let handleDragCancel;
 let rangeFinder = false;
 let ctrlPressed = false;
+let altPressed = false;
 const TokenSpeedAttributes = {base:"",bonus:""};
 class DragRuler extends Ruler{
 	constructor(user, {color=null}={}) {
@@ -31,9 +32,9 @@ class DragRuler extends Ruler{
 	    this.tokenSpeed = this.getTokenSpeed(this.getToken)
   	}
   	getTokenSpeed(token){
-  		const baseSpeed = parseInt(getProperty(token,TokenSpeedAttributes.base));
+  		const baseSpeed = parseFloat(getProperty(token,TokenSpeedAttributes.base));
 
-  		const bonusSpeed = (TokenSpeedAttributes.bonus != "" && getProperty(token,TokenSpeedAttributes.bonus) !="") ? parseInt(getProperty(token,TokenSpeedAttributes.bonus)):0;
+  		const bonusSpeed = (TokenSpeedAttributes.bonus != "" && getProperty(token,TokenSpeedAttributes.bonus) !="") ? parseFloat(getProperty(token,TokenSpeedAttributes.bonus)):0;
   		const flagBonusSpeed = (typeof token.getFlag('ShowDragDistance','speed') !='undefined') ? token.getFlag('ShowDragDistance','speed').normal:0;
   		const normalSpeed = baseSpeed + flagBonusSpeed;
   		const flagDashSpeed = (typeof token.getFlag('ShowDragDistance','speed') !='undefined') ? token.getFlag('ShowDragDistance','speed').dash:0;
@@ -172,30 +173,31 @@ class DragRuler extends Ruler{
 
 	    // Draw measured path
 	    r.clear();
-	    for ( let s of segments ) {
-	   	 
-	      const {ray, label, text, last} = s;
+	   
+		    for ( let s of segments ) {
+		   	 
+		      const {ray, label, text, last} = s;
 
-	      // Draw line segment
-	      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
-	       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
+		      // Draw line segment
+		      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
+		       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
 
-	      // Draw the distance label just after the endpoint of the segment
-	      if ( label ) {
-	        label.text = text;
-	        label.alpha = last ? 1.0 : 0.5;
-	        label.visible = true;
-	        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
-	        label.position.set(labelPosition.x, labelPosition.y);
-	      }
+		      // Draw the distance label just after the endpoint of the segment
+		      if ( label ) {
+		        label.text = text;
+		        label.alpha = last ? 1.0 : 0.5;
+		        label.visible = true;
+		        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
+		        label.position.set(labelPosition.x, labelPosition.y);
+		      }
 
-	      // Highlight grid positions
-	      //if(speed === null){
+		      
 		      if(distancesTotal <= maxSpeed || game.settings.get('ShowDragDistance','maxSpeed') === false ){
 		      	this._highlightMeasurement(ray);
 		      }
-		  //}
-	    }
+		  }
+			  
+	    
 	    if(game.settings.get('ShowDragDistance','maxSpeed')){
 	    	
 		    if(distancesTotal > maxSpeed ){
@@ -353,7 +355,7 @@ class DragRuler extends Ruler{
 	   * @param {Object} data   Ruler data with which to update the display
    	*/
   	update(data) {
-  	
+  		
 	    if ( data.class !== "DragRuler" ) throw new Error("Unable to recreate Ruler instance from provided data");
 
 	    // Populate data
@@ -519,8 +521,12 @@ class DragRuler extends Ruler{
 		Token.prototype._onDragLeftMove = function(event){
 			if(canvas.controls.dragRuler.active){
 				canvas.controls.dragRuler._onMouseMove(event,this)
-				const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
-				game.user.broadcastActivity({dragruler:dragruler})
+				
+				if(!this.data.hidden && game.user.isGM && altPressed){
+					const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
+					game.user.broadcastActivity({dragruler:dragruler})
+				}
+				
 			}
 			
 			oldOnDragLeftMove.apply(canvas.tokens.controlled[0],[event])
@@ -600,6 +606,9 @@ Hooks.on('ready',()=>{
 					canvas.mouseInteractionManager._dragRight = false;
 				}
 				break;
+			case 18:
+				altPressed = true;
+				break;
 			case 88:
 				if(canvas.controls.dragRuler.waypoints.length>1)
 					canvas.controls.dragRuler._removeWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens))
@@ -640,7 +649,13 @@ Hooks.on('ready',()=>{
 					canvas.mouseInteractionManager.state = canvas.mouseInteractionManager.states.HOVER
 				}
 				break;
-
+			case 18:
+				altPressed = false;
+				if(canvas.controls.dragRuler.active){
+				
+						game.user.broadcastActivity({dragruler:null})
+				}
+				break;
 			default:
 				break;
 		}
@@ -653,11 +668,4 @@ Hooks.on('canvasReady', ()=>{
 })
 Hooks.on('updateUser', (user,data,diff, id)=>{
 	canvas.controls.getDragRulerForUser(data._id).color = colorStringToHex(data.color);
-})/*
-const actorSpeedValue = token.actor.data. + 
-game.settings.get('ShowDragDistance','actorSpeedLocation');
-const baseSpeed = actor.get(actorSpeedValue) || game.settings.get('ShowDragDistance','baseSpeedDefault');
-const baseDashType = game.settings.get('ShowDragDistance','baseDashType'); // 'multiplier' or 'value'
-const actorDashValue = token.actor.data. + game.settings.get('ShowDragDistance','actorDashLocation');
-const baseDash = actor.get(actorDashValue) || game.settings.get('ShowDragDistance','baseDashDefault');
-const dashValue = baseDashType == "multiply" ? baseSpeed * baseDash : baseSpeed + baseDash;*/
+})
