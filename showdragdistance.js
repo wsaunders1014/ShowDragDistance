@@ -525,7 +525,11 @@ class DragRuler extends Ruler{
 				if(!this.data.hidden && game.user.isGM && altPressed){
 					const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
 					game.user.broadcastActivity({dragruler:dragruler})
+				}else if(!game.user.isGM) {
+					const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
+					game.user.broadcastActivity({dragruler:dragruler})
 				}
+
 				
 			}
 			
