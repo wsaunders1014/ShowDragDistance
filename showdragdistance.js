@@ -513,13 +513,13 @@ class DragRuler extends Ruler{
 		
 		let oldOnDragLeftStart = Token.prototype._onDragLeftStart;
 		Token.prototype._onDragLeftStart = function(event){
-			if(game.settings.get('ShowDragDistance','enabled') === true)
+			if(game.settings.get('ShowDragDistance','enabled') === true && typeof this.data.flags['pick-up-stix'] == 'undefined')
 				canvas.controls.dragRuler._onDragStart(event)
 			oldOnDragLeftStart.apply(this,[event])
 		}
 		let oldOnDragLeftMove = Token.prototype._onDragLeftMove;
 		Token.prototype._onDragLeftMove = function(event){
-			if(canvas.controls.dragRuler.active){
+			if(canvas.controls.dragRuler.active  && typeof this.data.flags['pick-up-stix'] == 'undefined'){
 				canvas.controls.dragRuler._onMouseMove(event,this)
 				
 				if(!this.data.hidden && game.user.isGM && altPressed){
@@ -550,12 +550,12 @@ class DragRuler extends Ruler{
 			    this.layer.preview.removeChildren();
 				
 				
-				if(canvas.controls.dragRuler.active){
+				if(canvas.controls.dragRuler.active && typeof this.data.flags['pick-up-stix'] == 'undefined'){
 					const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
 					canvas.controls.dragRuler.moveToken()
 					
 				}else{
-					//oldOnDragLeftCancel.apply(this,[event])
+					oldOnDragLeftCancel.apply(this,[event])
 				}
 			}else{
 				oldOnDragLeftCancel.apply(this,[event])
@@ -564,22 +564,27 @@ class DragRuler extends Ruler{
 		}
 		let handleDragCancel = MouseInteractionManager.prototype._handleDragCancel;
 		MouseInteractionManager.prototype._handleDragCancel = function(event){
-			if(canvas.tokens.controlled.length > 0 && canvas.tokens.controlled[0].mouseInteractionManager.state == 3){
-				switch(event.button){
-					case 0:
-					
-						handleDragCancel.apply(this,[event])
-						break;
-					case 2:
-						canvas.controls.dragRuler._addWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens));
-						break;
-					default:
-						handleDragCancel.apply(this,[event])
-						break;
-				}
-		 	}else{
-		 		handleDragCancel.apply(this,[event])
-		 	}
+			
+			if((typeof this.object.data != 'undefined') && typeof this.object.data.flags['pick-up-stix'] == 'undefined'){
+				if( canvas.tokens.controlled.length > 0 && canvas.tokens.controlled[0].mouseInteractionManager.state == 3 ){
+					switch(event.button){
+						case 0:
+						
+							handleDragCancel.apply(this,[event])
+							break;
+						case 2:
+							canvas.controls.dragRuler._addWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens));
+							break;
+						default:
+							handleDragCancel.apply(this,[event])
+							break;
+					}
+			 	}else{
+			 		handleDragCancel.apply(this,[event])
+			 	}
+			}else{
+				handleDragCancel.apply(this,[event])
+			}
 		}
 	}
 }
