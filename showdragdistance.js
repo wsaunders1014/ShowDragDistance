@@ -46,11 +46,10 @@ class DragRuler extends Ruler{
     	this._endMeasurement();
   	}
   	_onMouseMove(event) {
+  		
 	    if ( this._state === Ruler.STATES.MOVING ) return;
 	   
-	  	// if(game.settings.get('ShowDragDistance','maxSpeed') === true){
-		    
-	   //  }
+
 	   // Extract event data
 	    const mt = event._measureTime || 0;
 	    const {origin, destination, originalEvent} = event.data;
@@ -58,7 +57,9 @@ class DragRuler extends Ruler{
 	    // Check measurement distance
 	    let dx = destination.x - origin.x,
 	        dy = destination.y - origin.y;
-	    if ( Math.hypot(dy, dx) >= canvas.dimensions.size / 2 ) {
+
+	  
+	    //if ( Math.hypot(dy, dx) >= canvas.dimensions.size / 2 ) { // remove this so you can drag back to starting point
 
 	      // Hide any existing Token HUD
 	      canvas.hud.token.clear();
@@ -71,7 +72,7 @@ class DragRuler extends Ruler{
 	        event._measureTime = Date.now();
 	        this._state = Ruler.STATES.MEASURING;
 	      }
-	    }
+	  
   	}
   	measure(destination, {gridSpaces=true}={}) {
 
@@ -513,8 +514,10 @@ class DragRuler extends Ruler{
 		
 		let oldOnDragLeftStart = Token.prototype._onDragLeftStart;
 		Token.prototype._onDragLeftStart = function(event){
-			if(game.settings.get('ShowDragDistance','enabled') === true && typeof this.data.flags['pick-up-stix'] == 'undefined')
+			if(game.settings.get('ShowDragDistance','enabled') === true && typeof this.data.flags['pick-up-stix'] == 'undefined'){
+				event.data.origin = this.center;
 				canvas.controls.dragRuler._onDragStart(event)
+			}
 			oldOnDragLeftStart.apply(this,[event])
 		}
 		let oldOnDragLeftMove = Token.prototype._onDragLeftMove;
