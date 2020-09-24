@@ -8,6 +8,8 @@ New Settings:
 You can now point to where the speed or movement attribute is located on the actor sheet. For instance, for DnD5e it is `actor.data.data.attributes.speed.value`. You can also point to a bonus movement attribute if your system has one. In addition you can use token.setFlag('ShowDragDistance','speed',{normal:0,dash:0}) to add any one time speed boosts via macro. The DragRuler also calls Hook.call('moveToken', token, dragRuler) when the token moves. Drag colors are configurable in client side settings if they are too close to player's color.
 
 # Changelog
+2.1.5 - Now cancels ruler and movement if you drag token back to starting point. Holding shift will now let you place token off grid, as it should. Pressing escape while dragging will now cancel drag.
+
 2.1.4 - Fixed conflict with Pick-Up-Stix.
 
 2.1.3 - Fixed user broadcasting.

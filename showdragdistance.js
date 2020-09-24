@@ -3,6 +3,7 @@ let handleDragCancel;
 let rangeFinder = false;
 let ctrlPressed = false;
 let altPressed = false;
+let dragShift = false;
 const TokenSpeedAttributes = {base:"",bonus:""};
 class DragRuler extends Ruler{
 	constructor(user, {color=null}={}) {
@@ -76,7 +77,10 @@ class DragRuler extends Ruler{
   	}
   	measure(destination, {gridSpaces=true}={}) {
 
-	    destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
+  		if(!dragShift)
+	    	destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
+	    //else
+
 	    const waypoints = this.waypoints.concat([destination]);
 	    const r = this.dragRuler;
 	    this.destination = destination;
@@ -148,7 +152,7 @@ class DragRuler extends Ruler{
 						dashSpeed = 0;
 					}
 				}
- 				if(dist > 0){
+ 				if(dist > 0 && newSegments.length > 0){
  					newRay = {ray:new Ray(newSegments[newSegments.length -1].ray.B,ray.B)} 
 	 				newRay.exceeded = true;
 	 				newRay.dash = false;
@@ -555,9 +559,12 @@ class DragRuler extends Ruler{
 				
 				if(canvas.controls.dragRuler.active && typeof this.data.flags['pick-up-stix'] == 'undefined'){
 					const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
-					canvas.controls.dragRuler.moveToken()
-					
+					//canvas.controls.dragRuler.moveToken()
+					canvas.controls.dragRuler._onMouseUp(event)
+					canvas.controls.dragRuler._endMeasurement();
+					canvas.controls.dragRuler._state = 0;
 				}else{
+					
 					oldOnDragLeftCancel.apply(this,[event])
 				}
 			}else{
@@ -646,6 +653,24 @@ Hooks.on('ready',()=>{
 					canvas.controls.dragRuler._addWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens))
 				}
 				break;
+			case 27:
+				for ( let c of canvas.tokens.controlled[0].layer.preview.children ) {
+			      const o = c._original;
+			      if ( o ) {
+			        o.data.locked = false;
+			        o.alpha = 1.0;
+			      }
+			    }
+				canvas.tokens.controlled[0].layer.preview.removeChildren();
+				canvas.controls.dragRuler._onMouseUp(e)
+				canvas.mouseInteractionManager.state = 1;
+				canvas.tokens.controlled[0].mouseInteractionManager.state = 0
+				canvas.tokens.controlled[0]._onDragLeftCancel(e);
+				canvas.tokens.controlled[0].release()
+				break;
+			case 16:
+				dragShift= true;
+				break;
 			default:
 				break;
 		}
@@ -667,6 +692,9 @@ Hooks.on('ready',()=>{
 				
 						game.user.broadcastActivity({dragruler:null})
 				}
+				break;
+			case 16:
+				dragShift= false;
 				break;
 			default:
 				break;
