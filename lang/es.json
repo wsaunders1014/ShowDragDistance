@@ -1,0 +1,22 @@
+{
+	"ShowDragDistance.enable-s":"¿Activar el Mostrar la Distancia al Arrastrar?",
+	"ShowDragDistance.enable-l":"Muestra la distancia que se mueve un icono al arrastrarlo, es parecido a pulsar CTRL y arrastrar por el mapa. Usa el clic-derecho para añadir puntos de ruta. Presiona 'X' para borrarlos.",
+	"ShowDragDistance.showPath-s":"¿Mostrar por defecto la Ruta?",
+	"ShowDragDistance.showPath-l":"Muestra por defecto la ruta cuando arrastras, pulsa CTRL para ocultarla. Si se deshabilita, la ruta estará oculta y presionando CTRL se mostrará.",
+	"ShowDragDistance.rangeFinder-s":"¿Activar el Detector de Alcance?",
+	"ShowDragDistance.rangeFinder-l":"Pulsando CTRL se mostrará el alcance del icono seleccionado a la posición del cursor del ratón.",
+	"ShowDragDistance.maxSpeed-s":"¿Activar Cambio de Color al alcanzar la Velocidad Máxima?",
+	"ShowDragDistance.maxSpeed-l":"La regla cambiará de color en base a la velocidad máxima del icono. Puede que entre en conflicto con algunos módulos o sistemas.",
+	"ShowDragDistance.dash-s":"¿Activar Cambio de Color en Carrera?",
+	"ShowDragDistance.dash-l":"La regla mostrará un color diferente en las cuadrículas dentro de la velocidad de carrera.",
+	"ShowDragDistance.dashX-s":"Multiplicador de Carrera",
+	"ShowDragDistance.dashX-l":"Un número por el que se multiplica la velocidad base para calcular la Carrera. Para DnD5e, debería ser 1.",
+	"ShowDragDistance.baseSpeedAttr-s":"Atributo de la Velocidad Base",
+	"ShowDragDistance.baseSpeedAttr-l":"Establezca la ruta a la propiedad del objeto de la entidad icono en la que está almacenada la velocidad. Por ejemplo, en DND5e es 'actor.data.data.attributes.speed.value'",
+	"ShowDragDistance.bonusSpeedAttr-s":"Atributo de la Velocidad Extra",
+	"ShowDragDistance.bonusSpeedAttr-l":"Si el sistema tiene una propiedad que define velocidad especial o extra, establézcalo aquí o, en otro caso, déjelo en blanco. Por ejemplo, en DnD5e es 'actor.data.data.attributes.speed.special'",
+	"ShowDragDistance.maxSpeedColor-s": "Color de Velocidad Máxima",
+	"ShowDragDistance.maxSpeedColor-l":"Establezca el color que se debe mostrar cuando el jugador excede su velocidad de movimiento.",
+	"ShowDragDistance.dashSpeedColor-s":"Color de Velocidad de Carrera",
+	"ShowDragDistance.dashSpeedColor-l":"Establezca el color al mostrar la Velocidad de Carrera del icono."
+}
