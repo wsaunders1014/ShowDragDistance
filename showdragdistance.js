@@ -80,7 +80,7 @@ class DragRuler extends Ruler{
   		if(!dragShift)
 	    	destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
 	    //else
-
+	    console.log(this.waypoints[0],destination)
 	    const waypoints = this.waypoints.concat([destination]);
 	    const r = this.dragRuler;
 	    this.destination = destination;
@@ -289,7 +289,12 @@ class DragRuler extends Ruler{
 	      }
 	    }
   	}
-  	async moveToken() {
+  	_addWaypoint(point) {
+	    //const center = canvas.grid.getCenter(point.x, point.y);
+	    this.waypoints.push(new PIXI.Point(point.x, point.y));
+	    this.labels.addChild(new PIXI.Text("", CONFIG.canvasTextStyle));
+	}
+  	async moveToken(dragShift=false) {
   		console.log('moveToken')
 	    let wasPaused = game.paused;
 	    if ( wasPaused && !game.user.isGM ) {
@@ -299,20 +304,25 @@ class DragRuler extends Ruler{
 	    if ( !this.visible || !this.destination ) return false;
 	    const token = this._getMovementToken();
 	    if ( !token ) return;
-
+	    console.log(token.data.x,token.data.y)
 	    // Determine offset relative to the Token top-left.
 	    // This is important so we can position the token relative to the ruler origin for non-1x1 tokens.
-	    const origin = canvas.grid.getTopLeft(this.waypoints[0].x, this.waypoints[0].y);
-	    const s2 = canvas.dimensions.size / 2;
+	    let origin;
+	    if(!dragShift)
+	    	origin = canvas.grid.getTopLeft(this.waypoints[0].x, this.waypoints[0].y);
+	    else
+	    	origin = [this.waypoints[0].x, this.waypoints[0].y]
+	    let s2 = canvas.dimensions.size / 2;
 	    const dx = Math.round((token.data.x - origin[0]) / s2) * s2;
 	    const dy = Math.round((token.data.y - origin[1]) / s2) * s2;
+	    console.log(dx,dy)
 
 	    // Get the movement rays and check collision along each Ray
 	    // These rays are center-to-center for the purposes of collision checking
 	    const rays = this._getRaysFromWaypoints(this.waypoints, this.destination);
 	    let hasCollision = rays.some(r => canvas.walls.checkCollision(r));
 	   
-	    if ( hasCollision ) {
+	    if ( hasCollision && !game.user.isGM ) {
 	   	  this._endMeasurement();
 	      ui.notifications.error(game.i18n.localize("ERROR.TokenCollide"));
 	      return;
@@ -324,8 +334,14 @@ class DragRuler extends Ruler{
 	    token._noAnimate = true;
 	    for ( let r of rays ) {
 	      if ( !wasPaused && game.paused ) break;
-	      const dest = canvas.grid.getTopLeft(r.B.x, r.B.y);
-	      const path = new Ray({x: token.x, y: token.y}, {x: dest[0] + dx, y: dest[1] + dy});
+	      let dest;
+	      if(!dragShift)
+	      	dest = canvas.grid.getTopLeft(r.B.x, r.B.y);
+	      else
+	      	dest = [r.B.x,r.B.y]
+	      if(!dragShift)
+	      	s2=0;
+	      const path = new Ray({x: token.data.x, y: token.data.y}, {x: dest[0]-s2 , y: dest[1]-s2 });
 	      await token.update(path.B);
 	      await token.animateMovement(path);
 	      
@@ -560,7 +576,7 @@ class DragRuler extends Ruler{
 				
 				if(typeof this.data.flags['pick-up-stix'] == 'undefined' ){
 					const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
-					canvas.controls.dragRuler.moveToken()
+					canvas.controls.dragRuler.moveToken(dragShift)
 					canvas.controls.dragRuler._onMouseUp(event)
 					canvas.controls.dragRuler._endMeasurement();
 					canvas.controls.dragRuler._state = 0;
