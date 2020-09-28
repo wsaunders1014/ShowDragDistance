@@ -117,7 +117,7 @@ class DragRuler extends Ruler{
  				let gridSpaces = dist/canvas.scene.data.gridDistance; //40/5 = 80
  				let maxGridSpaces,percent=0,maxPoint,newRay;
 
- 				if(remainingSpeed > 0){ //10
+ 				if(remainingSpeed >= 0){ //10
  					maxGridSpaces = (remainingSpeed/canvas.scene.data.gridDistance); // 10/5 = 2
 	 				percent = (maxGridSpaces / gridSpaces > 1) ? 1:maxGridSpaces / gridSpaces; // 2/8 = 0.25
 	 				maxPoint = ray.project(percent) // Finds a point n% down the ray, which is the last square that the player can reach.
@@ -290,6 +290,7 @@ class DragRuler extends Ruler{
 	    }
   	}
   	async moveToken() {
+  		console.log('moveToken')
 	    let wasPaused = game.paused;
 	    if ( wasPaused && !game.user.isGM ) {
 	      ui.notifications.warn(game.i18n.localize("GAME.PausedWarning"));
@@ -327,8 +328,9 @@ class DragRuler extends Ruler{
 	      const path = new Ray({x: token.x, y: token.y}, {x: dest[0] + dx, y: dest[1] + dy});
 	      await token.update(path.B);
 	      await token.animateMovement(path);
-	      Hooks.call('moveToken', token, this)
+	      
 	    }
+	    Hooks.call('DragRuler.moveToken', token, this)
 	    token._noAnimate = false;
 
 	    // Once all animations are complete we can clear the ruler
@@ -542,11 +544,10 @@ class DragRuler extends Ruler{
 			
 			oldOnDragLeftMove.apply(canvas.tokens.controlled[0],[event])
 		}
-		let oldOnDragLeftCancel = Token.prototype._onDragLeftCancel;
-		Token.prototype._onDragLeftCancel = function(event){
-			event.stopPropagation();
-		
-			if(canvas.tokens.controlled.length > 0  ){
+		let oldOnDragLeftDrop = Token.prototype._onDragLeftDrop;
+		Token.prototype._onDragLeftDrop = function(event){
+			if(game.settings.get('ShowDragDistance','enabled') && canvas.controls.dragRuler.active && canvas.tokens.controlled.length >0){
+				
 				for ( let c of this.layer.preview.children ) {
 			      const o = c._original;
 			      if ( o ) {
@@ -557,20 +558,25 @@ class DragRuler extends Ruler{
 			    this.layer.preview.removeChildren();
 				
 				
-				if(canvas.controls.dragRuler.active && typeof this.data.flags['pick-up-stix'] == 'undefined'){
+				if(typeof this.data.flags['pick-up-stix'] == 'undefined' ){
 					const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
-					//canvas.controls.dragRuler.moveToken()
+					canvas.controls.dragRuler.moveToken()
 					canvas.controls.dragRuler._onMouseUp(event)
 					canvas.controls.dragRuler._endMeasurement();
 					canvas.controls.dragRuler._state = 0;
-				}else{
-					
-					oldOnDragLeftCancel.apply(this,[event])
 				}
+				return false;
 			}else{
-				oldOnDragLeftCancel.apply(this,[event])
+				oldOnDragLeftDrop.apply(this,[event]);
 			}
-			//}
+		}
+		let oldOnDragLeftCancel = Token.prototype._onDragLeftCancel;
+		Token.prototype._onDragLeftCancel = function(event){
+			event.stopPropagation();
+			
+			
+			oldOnDragLeftCancel.apply(this,[event])
+			
 		}
 		let handleDragCancel = MouseInteractionManager.prototype._handleDragCancel;
 		MouseInteractionManager.prototype._handleDragCancel = function(event){
@@ -654,19 +660,21 @@ Hooks.on('ready',()=>{
 				}
 				break;
 			case 27:
-				for ( let c of canvas.tokens.controlled[0].layer.preview.children ) {
-			      const o = c._original;
-			      if ( o ) {
-			        o.data.locked = false;
-			        o.alpha = 1.0;
-			      }
-			    }
-				canvas.tokens.controlled[0].layer.preview.removeChildren();
-				canvas.controls.dragRuler._onMouseUp(e)
-				canvas.mouseInteractionManager.state = 1;
-				canvas.tokens.controlled[0].mouseInteractionManager.state = 0
-				canvas.tokens.controlled[0]._onDragLeftCancel(e);
-				canvas.tokens.controlled[0].release()
+				if(canvas.tokens.controlled.length > 0) {
+					for ( let c of canvas.tokens.controlled[0].layer.preview.children ) {
+				      const o = c._original;
+				      if ( o ) {
+				        o.data.locked = false;
+				        o.alpha = 1.0;
+				      }
+				    }
+					canvas.tokens.controlled[0].layer.preview.removeChildren();
+					canvas.controls.dragRuler._onMouseUp(e)
+					canvas.mouseInteractionManager.state = 1;
+					canvas.tokens.controlled[0].mouseInteractionManager.state = 0
+					canvas.tokens.controlled[0]._onDragLeftCancel(e);
+					canvas.tokens.controlled[0].release()
+				}
 				break;
 			case 16:
 				dragShift= true;
