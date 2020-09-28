@@ -19,6 +19,11 @@
       "lang": "ko",
       "name": "Korean",
       "path": "lang/ko.json"
+    },
+    {
+      "lang": "es",
+      "name": "Spanish",
+      "path": "lang/es.json"
     }
    ],
   "changelog":"https://raw.githubusercontent.com/wsaunders1014/ShowDragDistance/master/README.md",
