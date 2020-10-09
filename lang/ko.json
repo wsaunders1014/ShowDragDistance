@@ -4,5 +4,18 @@
 	"ShowDragDistance.showPath-s":"이동 경로 표시를 기본값으로 설정",
 	"ShowDragDistance.showPath-l":"드래그를 통한 경로 표시를 기본값으로 표시한다. Ctrl키를 눌러 경로를 숨기며 비활성화될 경우 경로가 숨겨지며 Ctrl 키를 통해 표시된다.",
 	"ShowDragDistance.rangeFinder-s":"거리 측정기 활성화",
-	"ShowDragDistance.rangeFinder-l":"활성화할 경우 마우스 이동 시 'Ctrl'키를 유지하면 선택한 토큰의 범위가 표시된다 ."
+	"ShowDragDistance.rangeFinder-l":"활성화할 경우 마우스 이동 시 'Ctrl'키를 유지하면 선택한 토큰의 범위가 표시된다 .",
+	"ShowDragDistance.maxSpeed-l":"드래그 측정자는 토큰의 최대 속도에 따라 색상이 변경된다. 일부 모듈 또는 시스템과 충돌할 수 있다.",
+	"ShowDragDistance.dash-s":"질주 색상 변경 활성화",
+	"ShowDragDistance.dash-l":"드래그 측정자는 질주 속도의 칸에 대해 다른 색사을 표시한다.",
+	"ShowDragDistance.dashX-s":"질주 승수",
+	"ShowDragDistance.dashX-l":"질주를 위해 기본 이동 속도를 곱하는 숫자이다. DND5e의 경우 1이다.",
+	"ShowDragDistance.baseSpeedAttr-s":"기본 속도 속성",
+	"ShowDragDistance.baseSpeedAttr-l":"토큰 엔티티에서 속도에 대한 객채 속성 경로를 입력한다. DND5e의 경우'actor.data.data.attributes.speed.value'이다.",
+	"ShowDragDistance.bonusSpeedAttr-s":"보너스 속도 속성",
+	"ShowDragDistance.bonusSpeedAttr-l":"시스템에 보너스, 또는 특수 속성이 있는 경우 여기 입력하고, 그렇지 않을 경우 비워둔다. 예시(DnD5e):actor.data.data.attributes.speed.special",
+	"ShowDragDistance.maxSpeedColor-s": "최대 속도 색상",
+	"ShowDragDistance.maxSpeedColor-l":"이동 속도를 초과한 경우 표시할 색상을 입력한다.",
+	"ShowDragDistance.dashSpeedColor-s":"질주 속도 색상",
+	"ShowDragDistance.dashSpeedColor-l":"토큰의 질주 이동을 나타내는 색상이다."
 }

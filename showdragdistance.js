@@ -1,3 +1,6 @@
+// import { PathManager } from "/modules/lib-find-the-path/scripts/pathManager.js";
+// import { MinkowskiParameter,PointFactory,Segment } from "/modules/lib-find-the-path/scripts/point.js";
+// import {FTPUtility} from "/modules/lib-find-the-path/scripts/utility.js";
 let showDragDistance = true;
 let handleDragCancel;
 let rangeFinder = false;
@@ -17,6 +20,9 @@ class DragRuler extends Ruler{
 	    this.color = color || colorStringToHex(this.user.data.color) || 0x42F4E2;
 	    this.tokenSpeed = {normal:null,bonus:null}
 	    canvas.grid.addHighlightLayer(this.name);
+	    // this.pf = new PointFactory(MinkowskiParameter.Chebyshev);
+	    // this.pm = new PathManager(MinkowskiParameter.Chebyshev);
+	    // this.FTPUtility = new FTPUtility()
 	   
   	}
    	clear() {
@@ -75,12 +81,12 @@ class DragRuler extends Ruler{
 	      }
 	  
   	}
-  	measure(destination, {gridSpaces=true}={}) {
+  	async measure(destination, {gridSpaces=true}={}) {
 
   		if(!dragShift)
 	    	destination = new PIXI.Point(...canvas.grid.getCenter(destination.x, destination.y));
 	    //else
-
+	  
 	    const waypoints = this.waypoints.concat([destination]);
 	    const r = this.dragRuler;
 	    this.destination = destination;
@@ -117,7 +123,7 @@ class DragRuler extends Ruler{
  				let gridSpaces = dist/canvas.scene.data.gridDistance; //40/5 = 80
  				let maxGridSpaces,percent=0,maxPoint,newRay;
 
- 				if(remainingSpeed > 0){ //10
+ 				if(remainingSpeed >= 0){ //10
  					maxGridSpaces = (remainingSpeed/canvas.scene.data.gridDistance); // 10/5 = 2
 	 				percent = (maxGridSpaces / gridSpaces > 1) ? 1:maxGridSpaces / gridSpaces; // 2/8 = 0.25
 	 				maxPoint = ray.project(percent) // Finds a point n% down the ray, which is the last square that the player can reach.
@@ -179,28 +185,28 @@ class DragRuler extends Ruler{
 	    // Draw measured path
 	    r.clear();
 	   
-		    for ( let s of segments ) {
-		   	 
-		      const {ray, label, text, last} = s;
+	    for ( let s of segments ) {
+	   	 
+	      const {ray, label, text, last} = s;
 
-		      // Draw line segment
-		      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
-		       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
+	      // Draw line segment
+	      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
+	       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
 
-		      // Draw the distance label just after the endpoint of the segment
-		      if ( label ) {
-		        label.text = text;
-		        label.alpha = last ? 1.0 : 0.5;
-		        label.visible = true;
-		        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
-		        label.position.set(labelPosition.x, labelPosition.y);
-		      }
+	      // Draw the distance label just after the endpoint of the segment
+	      if ( label ) {
+	        label.text = text;
+	        label.alpha = last ? 1.0 : 0.5;
+	        label.visible = true;
+	        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
+	        label.position.set(labelPosition.x, labelPosition.y);
+	      }
 
-		      
-		      if(distancesTotal <= maxSpeed || game.settings.get('ShowDragDistance','maxSpeed') === false ){
-		      	this._highlightMeasurement(ray);
-		      }
-		  }
+	      
+	      if(distancesTotal <= maxSpeed || game.settings.get('ShowDragDistance','maxSpeed') === false ){
+	      	this._highlightMeasurement(ray);
+	      }
+	  	}
 			  
 	    
 	    if(game.settings.get('ShowDragDistance','maxSpeed')){
@@ -218,13 +224,50 @@ class DragRuler extends Ruler{
 			    	}
 			    }
 			}
+		}else{
+			for ( let s of segments ) {
+		      const {ray, label, text, last} = s;
+
+		      // Draw line segment
+		      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
+		       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
+
+		      // Draw the distance label just after the endpoint of the segment
+		      if ( label ) {
+		        label.text = text;
+		        label.alpha = last ? 1.0 : 0.5;
+		        label.visible = true;
+		        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
+		        label.position.set(labelPosition.x, labelPosition.y);
+		      }
+
+		      // Highlight grid positions
+		      this._highlightMeasurement(ray);
+	    	}
 		}
+		
 	    // Draw endpoints
 	    for ( let p of waypoints ) {
 	      r.lineStyle(2, 0x000000, 0.5).beginFill(this.color, 0.25).drawCircle(p.x, p.y, 8);
 	    
 	  	}
-	  		
+	  	/*const Path = game.FindThePath.Chebyshev;
+	  	let originSeg = this.pf.segmentFromToken(canvas.tokens.controlled[0])
+	  	console.log(originSeg)
+	  	let [x,y] = canvas.grid.grid.getTopLeft(this.destination.x,this.destination.y)
+	  	let destSeg = new Segment(this.pf.fromPixel(x,y))
+	  	console.log('destSeg',destSeg, this.destination);
+	  	const newPath = await PathManager.pathToSegment(originSeg,destSeg,5)
+	  	console.log(newPath)
+	  	this.FTPUtility._path = newPath
+	  	this.FTPUtility._token = canvas.tokens.controlled[0];
+	  	newPath.token = canvas.tokens.controlled[0];
+	  	let pathPts = [] 
+	  	newPath.path.forEach((node)=>{
+	  		pathPts.push(node.origin)
+	  	})
+	  	console.log(pathPts)
+	  	this.FTPUtility.highlightPoints(pathPts)*/
 	    // Return the measured segments
 	    return segments;
   	}
@@ -232,15 +275,19 @@ class DragRuler extends Ruler{
   		
 	    let [x0, y0] = Object.values(this.waypoints[0]);
 	    const tokens = new Set(canvas.tokens.controlled);
+	    
 	    if ( !tokens.size && game.user.character ) {
 	      const charTokens = game.user.character.getActiveTokens();
 	      if ( charTokens.length ) tokens.add(...charTokens);
 	    }
 	    if ( !tokens.size ) return null;
-	    return Array.from(tokens).find(t => {
+	   
+	    let x = Array.from(tokens).find(t => {
 	      let pos = new PIXI.Rectangle(t.x - 1, t.y - 1, t.w + 2, t.h + 2);
 	      return pos.contains(x0, y0);
-	    });
+	    })
+	    
+	    return x
   	}
   	
   	_highlightMeasurement(ray,exceeded=false,dash=false) {
@@ -289,29 +336,49 @@ class DragRuler extends Ruler{
 	      }
 	    }
   	}
-  	async moveToken() {
+  	_addWaypoint(point) {
+	    //const center = canvas.grid.getCenter(point.x, point.y);
+	    this.waypoints.push(new PIXI.Point(point.x, point.y));
+	    this.labels.addChild(new PIXI.Text("", CONFIG.canvasTextStyle));
+	}
+  	async moveToken(dragShift=false) {
+  		
 	    let wasPaused = game.paused;
 	    if ( wasPaused && !game.user.isGM ) {
 	      ui.notifications.warn(game.i18n.localize("GAME.PausedWarning"));
 	      return false;
 	    }
 	    if ( !this.visible || !this.destination ) return false;
+
 	    const token = this._getMovementToken();
+	 
 	    if ( !token ) return;
 
 	    // Determine offset relative to the Token top-left.
 	    // This is important so we can position the token relative to the ruler origin for non-1x1 tokens.
-	    const origin = canvas.grid.getTopLeft(this.waypoints[0].x, this.waypoints[0].y);
-	    const s2 = canvas.dimensions.size / 2;
-	    const dx = Math.round((token.data.x - origin[0]) / s2) * s2;
-	    const dy = Math.round((token.data.y - origin[1]) / s2) * s2;
-
+	    let origin;
+	    /*if(!dragShift && canvas.scene.data.gridType !== 0)
+	    	origin = canvas.grid.getTopLeft(this.waypoints[0].x, this.waypoints[0].y);
+	    else*/
+	    	
+    	origin = [this.waypoints[0].x , this.waypoints[0].y]
+	    let s2 = canvas.dimensions.size / 2;
+		
+	    console.log(origin)
+	    let dx = Math.round((token.data.x - origin[0]) / s2) * s2;
+	    let dy = Math.round((token.data.y - origin[1]) / s2) * s2;
+	   console.log(dx,dy)
+	    if(dragShift == false && canvas.scene.data.gridType !== 0){
+	    	dx = (dx > -70) ? 0:dx - (dx%canvas.dimensions.size);
+	    	dy = (dy > -70) ? 0:dy - (dy%canvas.dimensions.size);
+	    }
+	   	console.log(dx,dy)
 	    // Get the movement rays and check collision along each Ray
 	    // These rays are center-to-center for the purposes of collision checking
 	    const rays = this._getRaysFromWaypoints(this.waypoints, this.destination);
 	    let hasCollision = rays.some(r => canvas.walls.checkCollision(r));
 	   
-	    if ( hasCollision ) {
+	    if ( hasCollision && !game.user.isGM ) {
 	   	  this._endMeasurement();
 	      ui.notifications.error(game.i18n.localize("ERROR.TokenCollide"));
 	      return;
@@ -321,16 +388,25 @@ class DragRuler extends Ruler{
 	    // Transform each center-to-center ray into a top-left to top-left ray using the prior token offsets.
 	    this._state = Ruler.STATES.MOVING;
 	    token._noAnimate = true;
+	   
 	    for ( let r of rays ) {
 	      if ( !wasPaused && game.paused ) break;
-	      const dest = canvas.grid.getTopLeft(r.B.x, r.B.y);
-	      const path = new Ray({x: token.x, y: token.y}, {x: dest[0] + dx, y: dest[1] + dy});
+	      let dest;
+	      if(!dragShift && canvas.scene.data.gridType !== 0)
+	      	dest = canvas.grid.getTopLeft(r.B.x , r.B.y );
+	      else
+	      	dest = [r.B.x,r.B.y]
+	      
+	    	console.log(dest)
+	      const path = new Ray({x: token.x, y: token.y}, {x: dest[0]+dx , y: dest[1]+dy});
+	      
 	      await token.update(path.B);
 	      await token.animateMovement(path);
-	      Hooks.call('moveToken', token, this)
+	      
 	    }
+	    Hooks.call('DragRuler.moveToken', token, this)
 	    token._noAnimate = false;
-
+	    
 	    // Once all animations are complete we can clear the ruler
 	    this._endMeasurement();
   	}
@@ -518,8 +594,9 @@ class DragRuler extends Ruler{
 		
 		let oldOnDragLeftStart = Token.prototype._onDragLeftStart;
 		Token.prototype._onDragLeftStart = function(event){
-			if(game.settings.get('ShowDragDistance','enabled') === true && typeof this.data.flags['pick-up-stix'] == 'undefined'){
-				event.data.origin = this.center;
+			if(game.settings.get('ShowDragDistance','enabled') === true && typeof this.data.flags['pick-up-stix'] == 'undefined' && canvas.tokens.controlled.length==1){
+				event.data.origin = {x:this.x+(canvas.dimensions.size/2),y:this.y+(canvas.dimensions.size/2)};
+				//event.data.origin = this.center;
 				canvas.controls.dragRuler._onDragStart(event)
 			}
 			oldOnDragLeftStart.apply(this,[event])
@@ -542,11 +619,10 @@ class DragRuler extends Ruler{
 			
 			oldOnDragLeftMove.apply(canvas.tokens.controlled[0],[event])
 		}
-		let oldOnDragLeftCancel = Token.prototype._onDragLeftCancel;
-		Token.prototype._onDragLeftCancel = function(event){
-			event.stopPropagation();
-		
-			if(canvas.tokens.controlled.length > 0  ){
+		let oldOnDragLeftDrop = Token.prototype._onDragLeftDrop;
+		Token.prototype._onDragLeftDrop = function(event){
+			if(game.settings.get('ShowDragDistance','enabled') && canvas.controls.dragRuler.active ){
+				
 				for ( let c of this.layer.preview.children ) {
 			      const o = c._original;
 			      if ( o ) {
@@ -557,20 +633,26 @@ class DragRuler extends Ruler{
 			    this.layer.preview.removeChildren();
 				
 				
-				if(canvas.controls.dragRuler.active && typeof this.data.flags['pick-up-stix'] == 'undefined'){
+				if(typeof this.data.flags['pick-up-stix'] == 'undefined' ){
 					const dragruler = (canvas.controls.dragRuler._state > 0) ? canvas.controls.dragRuler.toJSON() : null;
-					//canvas.controls.dragRuler.moveToken()
+					canvas.controls.dragRuler.moveToken(dragShift)
 					canvas.controls.dragRuler._onMouseUp(event)
 					canvas.controls.dragRuler._endMeasurement();
 					canvas.controls.dragRuler._state = 0;
-				}else{
-					
-					oldOnDragLeftCancel.apply(this,[event])
+					//canvas.controls.dragRuler.FTPUtility.traverse(0,0,0);
 				}
+				return false;
 			}else{
-				oldOnDragLeftCancel.apply(this,[event])
+				oldOnDragLeftDrop.apply(this,[event]);
 			}
-			//}
+		}
+		let oldOnDragLeftCancel = Token.prototype._onDragLeftCancel;
+		Token.prototype._onDragLeftCancel = function(event){
+			event.stopPropagation();
+			
+			
+			oldOnDragLeftCancel.apply(this,[event])
+			
 		}
 		let handleDragCancel = MouseInteractionManager.prototype._handleDragCancel;
 		MouseInteractionManager.prototype._handleDragCancel = function(event){
@@ -583,7 +665,14 @@ class DragRuler extends Ruler{
 							handleDragCancel.apply(this,[event])
 							break;
 						case 2:
-							canvas.controls.dragRuler._addWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens));
+							const point = canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens);
+							if(!dragShift){
+								const center = canvas.grid.grid.getCenter(point.x,point.y)
+								canvas.controls.dragRuler._addWaypoint(new PIXI.Point(center[0], center[1]));
+							}else{
+								canvas.controls.dragRuler._addWaypoint(new PIXI.Point(point.x,point.y));
+							}
+							
 							break;
 						default:
 							handleDragCancel.apply(this,[event])
@@ -654,19 +743,21 @@ Hooks.on('ready',()=>{
 				}
 				break;
 			case 27:
-				for ( let c of canvas.tokens.controlled[0].layer.preview.children ) {
-			      const o = c._original;
-			      if ( o ) {
-			        o.data.locked = false;
-			        o.alpha = 1.0;
-			      }
-			    }
-				canvas.tokens.controlled[0].layer.preview.removeChildren();
-				canvas.controls.dragRuler._onMouseUp(e)
-				canvas.mouseInteractionManager.state = 1;
-				canvas.tokens.controlled[0].mouseInteractionManager.state = 0
-				canvas.tokens.controlled[0]._onDragLeftCancel(e);
-				canvas.tokens.controlled[0].release()
+				if(canvas.tokens.controlled.length > 0) {
+					for ( let c of canvas.tokens.controlled[0].layer.preview.children ) {
+				      const o = c._original;
+				      if ( o ) {
+				        o.data.locked = false;
+				        o.alpha = 1.0;
+				      }
+				    }
+					canvas.tokens.controlled[0].layer.preview.removeChildren();
+					canvas.controls.dragRuler._onMouseUp(e)
+					canvas.mouseInteractionManager.state = 1;
+					canvas.tokens.controlled[0].mouseInteractionManager.state = 0
+					canvas.tokens.controlled[0]._onDragLeftCancel(e);
+					canvas.tokens.controlled[0].release()
+				}
 				break;
 			case 16:
 				dragShift= true;
