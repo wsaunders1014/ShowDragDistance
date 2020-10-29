@@ -59,27 +59,33 @@ class DragRuler extends Ruler{
 
 	   // Extract event data
 	    const mt = event._measureTime || 0;
+	    const ld = event._lastDest || event.data.origin;
 	    const {origin, destination, originalEvent} = event.data;
 
 	    // Check measurement distance
 	    let dx = destination.x - origin.x,
 	        dy = destination.y - origin.y;
 
-	  
+	  	let [lastX,lastY] = canvas.grid.grid.getGridPositionFromPixels(ld.x,ld.y);
+	  	let [x,y] = canvas.grid.grid.getGridPositionFromPixels(destination.x,destination.y);
 	    //if ( Math.hypot(dy, dx) >= canvas.dimensions.size / 2 ) { // remove this so you can drag back to starting point
+	   
+	    // Hide any existing Token HUD
+	    canvas.hud.token.clear();
+	    delete event.data.hudState;
 
-	      // Hide any existing Token HUD
-	      canvas.hud.token.clear();
-	      delete event.data.hudState;
+	    // Draw measurement updates
+	    if(lastX != x || lastY !=y ){
+	    
+		    if ( Date.now() - mt > 50) {
 
-	      // Draw measurement updates
-	      if ( Date.now() - mt > 50 ) {
-	      
-        	this.measure(destination, {gridSpaces: !originalEvent.shiftKey});
-	        event._measureTime = Date.now();
-	        this._state = Ruler.STATES.MEASURING;
-	      }
-	  
+		     //if(Math.abs(dx) > canvas.dimensions.size/2 || Math.abs(dy) > canvas.dimensions.size/2){
+	        	this.measure(destination, {gridSpaces: !originalEvent.shiftKey});
+		        event._measureTime = Date.now();
+		        event._lastDest = destination
+		        this._state = Ruler.STATES.MEASURING;
+		    }
+	  	}
   	}
   	async measure(destination, {gridSpaces=true}={}) {
 
@@ -90,142 +96,47 @@ class DragRuler extends Ruler{
 	    const waypoints = this.waypoints.concat([destination]);
 	    const r = this.dragRuler;
 	    this.destination = destination;
-
+	    //let distancesTotal = 0;
 	    // Iterate over waypoints and construct segment rays
 	    const segments = [];
 	    for ( let [i, dest] of waypoints.slice(1).entries() ) {
-	      const origin = waypoints[i];
-	      const label = this.labels.children[i];
-	      const ray = new Ray(origin, dest);
-	      if ( ray.distance < (0.2 * canvas.grid.size) ) {
-	        if ( label ) label.visible = false;
-	        continue;
-	      }
-	      segments.push({ray, label});
-	    }
-	    
-	 	
-	    // Compute measured distance
-	    const distances = canvas.grid.measureDistances(segments, {gridSpaces});
-	    let distancesTotal = distances.reduce((total,num)=>{return total+num},0)
-	   	
-   	  	let remainingSpeed = (this.tokenSpeed.normal != null) ? this.tokenSpeed.normal:null;
-	    let dashSpeed = (this.tokenSpeed.dash !== null) ? this.tokenSpeed.dash: null;
-	 	let maxSpeed = remainingSpeed;
-	 	let newSegments = [];
-	  
- 		if(game.settings.get('ShowDragDistance','maxSpeed') && distancesTotal > maxSpeed){
- 			for(let i = 0;i<distances.length;i++){
- 				let dist = distances[i]; //40
- 				
- 				let seg = segments[i];
- 				let ray = seg.ray;
- 				let gridSpaces = dist/canvas.scene.data.gridDistance; //40/5 = 80
- 				let maxGridSpaces,percent=0,maxPoint,newRay;
-
- 				if(remainingSpeed >= 0){ //10
- 					maxGridSpaces = (remainingSpeed/canvas.scene.data.gridDistance); // 10/5 = 2
-	 				percent = (maxGridSpaces / gridSpaces > 1) ? 1:maxGridSpaces / gridSpaces; // 2/8 = 0.25
-	 				maxPoint = ray.project(percent) // Finds a point n% down the ray, which is the last square that the player can reach.
-	 				newRay = {ray:new Ray(ray.A,maxPoint)} 
-	 				newRay.exceeded = false;
-	 				newRay.dash = false;
-					newSegments.push(newRay);
-					if(remainingSpeed > dist){
-						remainingSpeed -=dist;
-						dist =0;
-					}else{
-						dist -=remainingSpeed;
-						remainingSpeed = 0;
-					}
-	 			}
-				if(game.settings.get('ShowDragDistance','dash') && dashSpeed > 0 && dist > 0){
-					maxGridSpaces = (dashSpeed/canvas.scene.data.gridDistance); // 10/5 = 2
-	 				percent = ((maxGridSpaces / gridSpaces) + percent > 1) ? 1:(maxGridSpaces / gridSpaces) + percent; // 2/8 = 0.25
-	 				maxPoint = ray.project(percent) // Finds a point n% down the ray, which is the last square that the player can reach.
-	 				
-	 				
-	 				newRay = {ray:new Ray(newSegments[newSegments.length -1].ray.B,maxPoint)} 
-	 				newRay.exceeded = true;
-	 				newRay.dash = true;
-					newSegments.push(newRay);
-
-	 				if(dashSpeed > dist){
-						dashSpeed -=dist;
-						dist =0;
-					}else{
-						dist -=dashSpeed;
-						dashSpeed = 0;
-					}
-				}
- 				if(dist > 0 && newSegments.length > 0){
- 					newRay = {ray:new Ray(newSegments[newSegments.length -1].ray.B,ray.B)} 
-	 				newRay.exceeded = true;
-	 				newRay.dash = false;
-	 				newSegments.push(newRay);
- 				}
- 			}
- 		}
-	 
-	   	
-	    let totalDistance = 0;
-	    for ( let [i, d] of distances.entries() ) {
-	      totalDistance += d;
-	      let s = segments[i];
-	      s.last = i === (segments.length - 1);
-	      s.distance = d;
-	      s.text = this._getSegmentLabel(d, totalDistance, s.last);
-	    }
-	    
-	 
-	    // Clear the grid highlight layer
+			const origin = waypoints[i];
+			const label = this.labels.children[i];
+			const ray = new Ray(origin, dest);
+			
+			if ( ray.distance < (0.2 * canvas.grid.size) ) {
+				if ( label ) label.visible = false;
+				continue;
+			}
+			segments.push({ray, label});
+		}
+		// Clear the grid highlight layer
 	    const hlt = canvas.grid.highlightLayers[this.name];
 	    hlt.clear();
 
 	    // Draw measured path
 	    r.clear();
-	   
-	    for ( let s of segments ) {
-	   	 
-	      const {ray, label, text, last} = s;
+		
+	  
+		if(game.settings.get('ShowDragDistance','maxSpeed')){
+		 	let distances = measureDistancesWithDifficultTerrain(segments);		 	
+		    let distancesTotal = distances.reduce((total,distance)=>{return total+=distance.totalDistance},0)
+		    let dist = 0;
+		 	distances.forEach((each)=>{
+		 		this._highlightArray(each.squares,dist);
+		 		dist +=each.totalDistance;
+		 	})
+		 	let totalDistance = 0;
+		    for ( let [i, d] of distances.entries() ) {
 
-	      // Draw line segment
-	      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
-	       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
-
-	      // Draw the distance label just after the endpoint of the segment
-	      if ( label ) {
-	        label.text = text;
-	        label.alpha = last ? 1.0 : 0.5;
-	        label.visible = true;
-	        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
-	        label.position.set(labelPosition.x, labelPosition.y);
-	      }
-
-	      
-	      if(distancesTotal <= maxSpeed || game.settings.get('ShowDragDistance','maxSpeed') === false ){
-	      	this._highlightMeasurement(ray);
-	      }
-	  	}
-			  
-	    
-	    if(game.settings.get('ShowDragDistance','maxSpeed')){
-	    	
-		    if(distancesTotal > maxSpeed ){
-		  
-			    for( let s of newSegments){
-			    	
-			    	if(game.settings.get('ShowDragDistance','dash')){
-			    		const {ray,exceeded,dash} = s;
-			    		this._highlightMeasurement(ray,exceeded,dash);
-			    	}else{
-			    		const {ray,exceeded} = s;
-			    		this._highlightMeasurement(ray,exceeded);
-			    	}
-			    }
-			}
-		}else{
+		      totalDistance += d.totalDistance;
+		      let s = segments[i];
+		      s.last = i === (segments.length - 1);
+		      s.distance = d.totalDistance;
+		      s.text = this._getSegmentLabel(d.totalDistance, totalDistance, s.last);
+		    }
 			for ( let s of segments ) {
+		   	 
 		      const {ray, label, text, last} = s;
 
 		      // Draw line segment
@@ -240,36 +151,49 @@ class DragRuler extends Ruler{
 		        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
 		        label.position.set(labelPosition.x, labelPosition.y);
 		      }
+		     
+		     
+		    
+		  	}
+		}else{
+			let distances = canvas.grid.measureDistances(segments, {gridSpaces});
+		    let totalDistance = 0;
+		    for ( let [i, d] of distances.entries() ) {
+		      totalDistance += d;
+		      let s = segments[i];
+		      s.last = i === (segments.length - 1);
+		      s.distance = d;
+		      s.text = this._getSegmentLabel(d, totalDistance, s.last);
+		    }
+			  for ( let s of segments ) {
+		   	 
+		      const {ray, label, text, last} = s;
 
-		      // Highlight grid positions
+		      // Draw line segment
+		      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
+		       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
+
+		      // Draw the distance label just after the endpoint of the segment
+		      if ( label ) {
+		        label.text = text;
+		        label.alpha = last ? 1.0 : 0.5;
+		        label.visible = true;
+		        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
+		        label.position.set(labelPosition.x, labelPosition.y);
+		      }
+		     
 		      this._highlightMeasurement(ray);
-	    	}
-		}
+		    
+		  	}
+		}  
 		
-	    // Draw endpoints
+ 		// Draw endpoints
 	    for ( let p of waypoints ) {
 	      r.lineStyle(2, 0x000000, 0.5).beginFill(this.color, 0.25).drawCircle(p.x, p.y, 8);
-	    
 	  	}
-	  	/*const Path = game.FindThePath.Chebyshev;
-	  	let originSeg = this.pf.segmentFromToken(canvas.tokens.controlled[0])
-	  	console.log(originSeg)
-	  	let [x,y] = canvas.grid.grid.getTopLeft(this.destination.x,this.destination.y)
-	  	let destSeg = new Segment(this.pf.fromPixel(x,y))
-	  	console.log('destSeg',destSeg, this.destination);
-	  	const newPath = await PathManager.pathToSegment(originSeg,destSeg,5)
-	  	console.log(newPath)
-	  	this.FTPUtility._path = newPath
-	  	this.FTPUtility._token = canvas.tokens.controlled[0];
-	  	newPath.token = canvas.tokens.controlled[0];
-	  	let pathPts = [] 
-	  	newPath.path.forEach((node)=>{
-	  		pathPts.push(node.origin)
-	  	})
-	  	console.log(pathPts)
-	  	this.FTPUtility.highlightPoints(pathPts)*/
-	    // Return the measured segments
+	  	
 	    return segments;
+	   
   	}
   	_getMovementToken() {
   		
@@ -336,6 +260,30 @@ class DragRuler extends Ruler{
 	      }
 	    }
   	}
+  	_highlightArray(array,dist=0){
+		let remainingSpeed = (this.tokenSpeed.normal != null) ? this.tokenSpeed.normal:null;
+	    let dashSpeed = (this.tokenSpeed.dash !== null) ? this.tokenSpeed.dash: null;
+	 	let maxSpeed = remainingSpeed;
+	 	let color = this.color;
+	
+  		
+  		array.forEach((square)=>{
+  			dist+=square.dist;
+
+  			
+  			if(game.settings.get('ShowDragDistance','dash')){
+  				if( dist > maxSpeed && dist < maxSpeed + dashSpeed)
+  					color = colorStringToHex(game.settings.get('ShowDragDistance','dashSpeedColor'))
+  				else if(dist > maxSpeed + dashSpeed)
+  					color = colorStringToHex(game.settings.get('ShowDragDistance','maxSpeedColor'))
+  			}else if(dist > maxSpeed)
+  				color = colorStringToHex(game.settings.get('ShowDragDistance','maxSpeedColor'))
+  				
+  			let [xg,yg] = canvas.grid.grid.getPixelsFromGridPosition(square.y, square.x);
+  			canvas.grid.highlightPosition(this.name, {x: xg, y: yg, color: color});
+  		})
+  		
+  	}
   	_addWaypoint(point) {
 	    //const center = canvas.grid.getCenter(point.x, point.y);
 	    this.waypoints.push(new PIXI.Point(point.x, point.y));
@@ -364,15 +312,15 @@ class DragRuler extends Ruler{
     	origin = [this.waypoints[0].x , this.waypoints[0].y]
 	    let s2 = canvas.dimensions.size / 2;
 		
-	    console.log(origin)
+	    
 	    let dx = Math.round((token.data.x - origin[0]) / s2) * s2;
 	    let dy = Math.round((token.data.y - origin[1]) / s2) * s2;
-	   console.log(dx,dy)
+	   
 	    if(dragShift == false && canvas.scene.data.gridType !== 0){
 	    	dx = (dx > -70) ? 0:dx - (dx%canvas.dimensions.size);
 	    	dy = (dy > -70) ? 0:dy - (dy%canvas.dimensions.size);
 	    }
-	   	console.log(dx,dy)
+	   
 	    // Get the movement rays and check collision along each Ray
 	    // These rays are center-to-center for the purposes of collision checking
 	    const rays = this._getRaysFromWaypoints(this.waypoints, this.destination);
@@ -397,7 +345,7 @@ class DragRuler extends Ruler{
 	      else
 	      	dest = [r.B.x,r.B.y]
 	      
-	    	console.log(dest)
+	    	
 	      const path = new Ray({x: token.x, y: token.y}, {x: dest[0]+dx , y: dest[1]+dy});
 	      
 	      await token.update(path.B);
@@ -720,7 +668,7 @@ Hooks.on('ready',()=>{
 			case 88:
 				if(canvas.controls.dragRuler.waypoints.length>1)
 					canvas.controls.dragRuler._removeWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens))
-				else{
+				else if(canvas.controls.dragRuler.waypoints.length==1){
 					canvas.controls.dragRuler._removeWaypoint(canvas.app.renderer.plugins.interaction.mouse.getLocalPosition(canvas.tokens))
 					for ( let c of canvas.tokens.controlled[0].layer.preview.children ) {
 					      const o = c._original;
@@ -800,3 +748,128 @@ Hooks.on('canvasReady', ()=>{
 Hooks.on('updateUser', (user,data,diff, id)=>{
 	canvas.controls.getDragRulerForUser(data._id).color = colorStringToHex(data.color);
 })
+function getSquaresInLine (startCoordinates, endCoordinates) {
+   
+    // Translate coordinates
+    var x1 = startCoordinates[0] || startCoordinates.x;
+    var y1 = startCoordinates[1] || startCoordinates.y;
+    var x2 = endCoordinates[0] || endCoordinates.x;
+    var y2 = endCoordinates[1] || endCoordinates.y;
+
+    var pointsArray = new Array();
+    // Define differences and error check
+    var dx = Math.abs(x2 - x1);
+    var dy = Math.abs(y2 - y1);
+    var sx,sy;
+  
+    	 sx = (x1 < x2) ? 1 : -1;
+    	 sy = (y1 < y2) ? 1 : -1;
+    
+    var err = dx - dy;
+    let originDist = 0;
+    // Main loop
+    while (!((x1 == x2) && (y1 == y2))) {
+        var e2 = err << 1;
+        if (e2 > -dy) {
+            err -= dy;
+            x1 += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            y1 += sy;
+        }
+        originDist+= 1;
+        // Set coordinates
+        pointsArray.push({x:x1,y: y1,gridDist:originDist});
+    }
+    // Return the result
+    return pointsArray;
+}
+function measureDistancesWithDifficultTerrain(segments) {
+ 	let size = canvas.dimensions.size;
+ 	let distances = segments.map((segment)=>{
+ 		let startX = Math.floor(segment.ray.A.x/size);
+ 		let startY = Math.floor(segment.ray.A.y/size);
+ 		let endX = Math.floor(segment.ray.B.x/size);
+ 		let endY = Math.floor(segment.ray.B.y/size);   
+ 		let squares = getSquaresInLine([startX,startY],[endX,endY])
+ 		let totalDistance = 0;
+ 		let nDiagonals = 0;
+ 		const rule = canvas.grid.diagonalRule;
+ 		if(typeof canvas.terrain !='undefined'){
+ 			for (let i = 0; i < squares.length;i++){
+ 				let {x,y} = squares[i];
+ 				let gridDistance = canvas.scene.data.gridDistance
+ 				
+ 				let lastX,lastY;
+ 				if(i!==0){
+	    			lastX = squares[i-1].x;
+	    			lastY = squares[i-1].y;
+	    		}else{
+	    			 lastY = startY;
+	    			 lastX = startX;
+	    		}
+	    		
+    			let dx = Math.abs(lastX - x);
+    			let dy = Math.abs(lastY - y);
+    			let nd = Math.min(dx, dy);
+
+    			
+    			if(nd > 0 && canvas.grid.diagonalRule == '5105'){
+    				nDiagonals++;
+    				if(Math.floor(nDiagonals%2)==0){
+    					gridDistance = gridDistance * 2;
+    				}
+    			}
+    			
+    				
+
+ 				if(typeof canvas.terrain.costGrid[y]?.[x] != 'undefined'){
+		    		let point = canvas.terrain.costGrid[y][x];
+		    		squares[i].dist = (point.multiple * gridDistance);
+		    		totalDistance += (point.multiple * gridDistance)
+		    	}else{
+		    		squares[i].dist = gridDistance;
+		    		totalDistance += gridDistance;
+		    	}
+		    	
+		    	//return totalDistance
+		    	
+ 			}	
+ 			return {totalDistance,squares}
+ 		}else{
+ 			for (let i = 0; i < squares.length;i++){
+ 				let {x,y} = squares[i];
+ 				let gridDistance = canvas.scene.data.gridDistance
+ 				
+ 				let lastX,lastY;
+ 				if(i!==0){
+	    			lastX = squares[i-1].x;
+	    			lastY = squares[i-1].y;
+	    		}else{
+	    			 lastY = startY;
+	    			 lastX = startX;
+	    		}
+	    		
+    			let dx = Math.abs(lastX - x);
+    			let dy = Math.abs(lastY - y);
+    			let nd = Math.min(dx, dy);
+
+    			
+    			if(nd > 0 && canvas.grid.diagonalRule == '5105'){
+    				nDiagonals++;
+    				if(Math.floor(nDiagonals%2)==0){
+    					gridDistance = gridDistance * 2;
+    				}
+    			}
+    			squares[i].dist = gridDistance;
+    			totalDistance += gridDistance;
+    			
+ 			}
+ 			return {totalDistance,squares}
+ 		}
+ 		
+ 	})
+ 	
+ 	return distances;
+};
