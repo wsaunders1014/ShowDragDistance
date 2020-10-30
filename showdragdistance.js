@@ -69,7 +69,7 @@ class DragRuler extends Ruler{
 	  	let [lastX,lastY] = canvas.grid.grid.getGridPositionFromPixels(ld.x,ld.y);
 	  	let [x,y] = canvas.grid.grid.getGridPositionFromPixels(destination.x,destination.y);
 	    //if ( Math.hypot(dy, dx) >= canvas.dimensions.size / 2 ) { // remove this so you can drag back to starting point
-	   
+	   	//console.log(lastX,lastY,x,y)
 	    // Hide any existing Token HUD
 	    canvas.hud.token.clear();
 	    delete event.data.hudState;
@@ -551,6 +551,7 @@ class DragRuler extends Ruler{
 		}
 		let oldOnDragLeftMove = Token.prototype._onDragLeftMove;
 		Token.prototype._onDragLeftMove = function(event){
+			
 			if(canvas.controls.dragRuler.active  && typeof this.data.flags['pick-up-stix'] == 'undefined'){
 				canvas.controls.dragRuler._onMouseMove(event,this)
 				
@@ -566,6 +567,7 @@ class DragRuler extends Ruler{
 			}
 			
 			oldOnDragLeftMove.apply(canvas.tokens.controlled[0],[event])
+			
 		}
 		let oldOnDragLeftDrop = Token.prototype._onDragLeftDrop;
 		Token.prototype._onDragLeftDrop = function(event){
@@ -753,9 +755,8 @@ function getSquaresInLine (startCoordinates, endCoordinates) {
     // Translate coordinates
     var x1 = startCoordinates[0] || startCoordinates.x;
     var y1 = startCoordinates[1] || startCoordinates.y;
-    var x2 = endCoordinates[0] || endCoordinates.x;
-    var y2 = endCoordinates[1] || endCoordinates.y;
-
+    var x2 = endCoordinates[0] || endCoordinates.x || 0;
+    var y2 = endCoordinates[1] || endCoordinates.y || 0;
     var pointsArray = new Array();
     // Define differences and error check
     var dx = Math.abs(x2 - x1);
