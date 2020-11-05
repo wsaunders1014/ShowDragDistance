@@ -20,10 +20,6 @@ class DragRuler extends Ruler{
 	    this.color = color || colorStringToHex(this.user.data.color) || 0x42F4E2;
 	    this.tokenSpeed = {normal:null,bonus:null}
 	    canvas.grid.addHighlightLayer(this.name);
-	    // this.pf = new PointFactory(MinkowskiParameter.Chebyshev);
-	    // this.pm = new PathManager(MinkowskiParameter.Chebyshev);
-	    // this.FTPUtility = new FTPUtility()
-	   
   	}
    	clear() {
 	    this._state = Ruler.STATES.INACTIVE;
@@ -68,8 +64,7 @@ class DragRuler extends Ruler{
 
 	  	let [lastX,lastY] = canvas.grid.grid.getGridPositionFromPixels(ld.x,ld.y);
 	  	let [x,y] = canvas.grid.grid.getGridPositionFromPixels(destination.x,destination.y);
-	    //if ( Math.hypot(dy, dx) >= canvas.dimensions.size / 2 ) { // remove this so you can drag back to starting point
-	   	//console.log(lastX,lastY,x,y)
+	    
 	    // Hide any existing Token HUD
 	    canvas.hud.token.clear();
 	    delete event.data.hudState;
@@ -96,7 +91,7 @@ class DragRuler extends Ruler{
 	    const waypoints = this.waypoints.concat([destination]);
 	    const r = this.dragRuler;
 	    this.destination = destination;
-	    //let distancesTotal = 0;
+	 
 	    // Iterate over waypoints and construct segment rays
 	    const segments = [];
 	    for ( let [i, dest] of waypoints.slice(1).entries() ) {
@@ -116,82 +111,60 @@ class DragRuler extends Ruler{
 
 	    // Draw measured path
 	    r.clear();
-		
+		let nDiagonals = 0;
+		let totalDistance = 0;
+ 		const rule = canvas.grid.diagonalRule;
 	  
-		if(game.settings.get('ShowDragDistance','maxSpeed')){
-		 	let distances = measureDistancesWithDifficultTerrain(segments);		 	
-		    let distancesTotal = distances.reduce((total,distance)=>{return total+=distance.totalDistance},0)
-		    let dist = 0;
-		 	distances.forEach((each)=>{
-		 		this._highlightArray(each.squares,dist);
-		 		dist +=each.totalDistance;
-		 	})
-		 	let totalDistance = 0;
-		    for ( let [i, d] of distances.entries() ) {
+	
+	  	for (let i = 0; i <segments.length;i++){
 
-		      totalDistance += d.totalDistance;
-		      let s = segments[i];
-		      s.last = i === (segments.length - 1);
-		      s.distance = d.totalDistance;
-		      s.text = this._getSegmentLabel(d.totalDistance, totalDistance, s.last);
-		    }
-			for ( let s of segments ) {
-		   	 
-		      const {ray, label, text, last} = s;
+	  		let s = segments[i];
+		    let {ray, label, last} = s;
 
-		      // Draw line segment
-		      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
-		       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
+		  	let line;
+		 	let ignoreTerrain = (typeof this.getToken.ignoreTerrain != 'undefined') ? this.getToken.ignoreTerrain:false;
+	      	if(canvas.grid.type > 1){
+	      		let grid0 = canvas.grid.grid.getGridPositionFromPixels(s.ray.A.x,s.ray.A.y);
+	      		let grid1 = canvas.grid.grid.getGridPositionFromPixels(s.ray.B.x,s.ray.B.y);
 
-		      // Draw the distance label just after the endpoint of the segment
-		      if ( label ) {
-		        label.text = text;
-		        label.alpha = last ? 1.0 : 0.5;
-		        label.visible = true;
-		        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
-		        label.position.set(labelPosition.x, labelPosition.y);
-		      }
-		     
-		     
+	      		let hex0 = canvas.grid.grid.offsetToCube(grid0[0],grid0[1]);
+		      	let hex1 = canvas.grid.grid.offsetToCube(grid1[0],grid1[1]);
+		      	
+		      	hex0 = new Hex(hex0.q,hex0.r,hex0.s);
+		      	
+		      
+		      	line = hex0.linedraw(hex1,totalDistance,ignoreTerrain)
 		    
-		  	}
-		}else{
-			let distances = canvas.grid.measureDistances(segments, {gridSpaces});
-		    let totalDistance = 0;
-		    for ( let [i, d] of distances.entries() ) {
-		      totalDistance += d;
-		      let s = segments[i];
-		      s.last = i === (segments.length - 1);
-		      s.distance = d;
-		      s.text = this._getSegmentLabel(d, totalDistance, s.last);
-		    }
-			  for ( let s of segments ) {
-		   	 
-		      const {ray, label, text, last} = s;
+		      	
+			}else if(canvas.grid.type == 1){
+				let p0 = canvas.grid.grid.getGridPositionFromPixels(s.ray.A.x,s.ray.A.y)
+				let p1 = canvas.grid.grid.getGridPositionFromPixels(s.ray.B.x,s.ray.B.y)
+				
+				line = grid_line({row:p0[0],col:p0[1]},{row:p1[0],col:p1[1]},totalDistance,nDiagonals,ignoreTerrain)
+			}
+		  
+		    nDiagonals = line[line.length-1].nDiagonals;
+		    s.distance = line.reduce((sum,val)=>{return sum + val.distance},0)
+		    totalDistance += s.distance;
+		    s.last = i === (segments.length - 1);
+		    s.text = this._getSegmentLabel(s.distance, totalDistance, s.last);
+		    // Draw line segment
+	    	r.lineStyle(6, 0x000000, 0.5).moveTo(s.ray.A.x, s.ray.A.y).lineTo(s.ray.B.x, s.ray.B.y)
+	        .lineStyle(4, this.color, 0.25).moveTo(s.ray.A.x, s.ray.A.y).lineTo(s.ray.B.x, s.ray.B.y);
+	        // Draw the distance label just after the endpoint of the segment
+	    	if ( label ) {
+	    		label.text = s.text;
+	        	label.alpha = s.last ? 1.0 : 0.5;
+	        	label.visible = true;
+	        	let labelPosition = ray.project((ray.distance + 50) / ray.distance);
+	        	label.position.set(labelPosition.x, labelPosition.y);
+	    	}
 
-		      // Draw line segment
-		      r.lineStyle(6, 0x000000, 0.5).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y)
-		       .lineStyle(4, this.color, 0.25).moveTo(ray.A.x, ray.A.y).lineTo(ray.B.x, ray.B.y);
-
-		      // Draw the distance label just after the endpoint of the segment
-		      if ( label ) {
-		        label.text = text;
-		        label.alpha = last ? 1.0 : 0.5;
-		        label.visible = true;
-		        let labelPosition = ray.project((ray.distance + 50) / ray.distance);
-		        label.position.set(labelPosition.x, labelPosition.y);
-		      }
-		     
-		      this._highlightMeasurement(ray);
-		    
-		  	}
-		}  
-		
- 		// Draw endpoints
-	    for ( let p of waypoints ) {
-	      r.lineStyle(2, 0x000000, 0.5).beginFill(this.color, 0.25).drawCircle(p.x, p.y, 8);
+		   	this._highlightMeasurement(line);
+		}
+		for ( let p of waypoints ) {
+	    	r.lineStyle(2, 0x000000, 0.5).beginFill(this.color, 0.25).drawCircle(p.x, p.y, 8);
 	  	}
-	  	
 	    return segments;
 	   
   	}
@@ -213,77 +186,28 @@ class DragRuler extends Ruler{
 	    
 	    return x
   	}
-  	
-  	_highlightMeasurement(ray,exceeded=false,dash=false) {
-  		
-  		let color = (exceeded) ? colorStringToHex(game.settings.get('ShowDragDistance','maxSpeedColor')):this.color;
-  		if(dash){
-  			color =colorStringToHex(game.settings.get('ShowDragDistance','dashSpeedColor'))
-  		}
-	    const spacer = canvas.scene.data.gridType === CONST.GRID_TYPES.SQUARE ? 1.41 : 1;
-	 
-	    let nMax = Math.max(Math.floor(ray.distance / (spacer * Math.min(canvas.grid.w, canvas.grid.h))), 1);
-	
-	    let tMax = Array.fromRange(nMax+1).map(t => t / nMax);
-	
-	    // Track prior position
-	    let prior = null;
-
-	    // Iterate over ray portions
-	    for ( let [i, t] of tMax.entries() ) {
-	     // console.log(i,t)
-	      let {x, y} = ray.project(t);
-
-	      // Get grid position
-	      let [x0, y0] = (i === 0) ? [null, null] : prior;
-	      let [x1, y1] = canvas.grid.grid.getGridPositionFromPixels(x, y);
-	      if ( x0 === x1 && y0 === y1 ) continue;
-
-	      // Highlight the grid position
-	      let [xg, yg] = canvas.grid.grid.getPixelsFromGridPosition(x1, y1);
-	    
-
-	      canvas.grid.highlightPosition(this.name, {x: xg, y: yg, color: color});
-
-	      // Skip the first one
-	      prior = [x1, y1];
-	      if ( i === 0 ) continue;
-
-	      // If the positions are not neighbors, also highlight their halfway point
-	      if ( !canvas.grid.isNeighbor(x0, y0, x1, y1) ) {
-	        let th = tMax[i - 1] + (0.5 / nMax);	     
-	        let {x, y} = ray.project(th);
-	    
-	        let [x1h, y1h] = canvas.grid.grid.getGridPositionFromPixels(x, y);
-	        let [xgh, ygh] = canvas.grid.grid.getPixelsFromGridPosition(x1h, y1h);
-	        canvas.grid.highlightPosition(this.name, {x: xgh, y: ygh, color: color});
-	      }
-	    }
-  	}
-  	_highlightArray(array,dist=0){
-		let remainingSpeed = (this.tokenSpeed.normal != null) ? this.tokenSpeed.normal:null;
+  	_highlightMeasurement(line){
+  		let remainingSpeed = (this.tokenSpeed.normal != null) ? this.tokenSpeed.normal:null;
 	    let dashSpeed = (this.tokenSpeed.dash !== null) ? this.tokenSpeed.dash: null;
 	 	let maxSpeed = remainingSpeed;
 	 	let color = this.color;
-	
-  		
-  		array.forEach((square)=>{
-  			dist+=square.dist;
+	 	
+	 	 for(let i=0;i<line.length;i++){
 
-  			
-  			if(game.settings.get('ShowDragDistance','dash')){
-  				if( dist > maxSpeed && dist < maxSpeed + dashSpeed)
-  					color = colorStringToHex(game.settings.get('ShowDragDistance','dashSpeedColor'))
-  				else if(dist > maxSpeed + dashSpeed)
-  					color = colorStringToHex(game.settings.get('ShowDragDistance','maxSpeedColor'))
-  			}else if(dist > maxSpeed)
-  				color = colorStringToHex(game.settings.get('ShowDragDistance','maxSpeedColor'))
-  				
-  			let [xg,yg] = canvas.grid.grid.getPixelsFromGridPosition(square.y, square.x);
-  			canvas.grid.highlightPosition(this.name, {x: xg, y: yg, color: color});
-  		})
-  		
+			if(line[i].travelled > remainingSpeed) {
+				if(game.settings.get('ShowDragDistance','dash') && line[i].travelled < remainingSpeed + maxSpeed){		
+					color = colorStringToHex(game.settings.get('ShowDragDistance','dashSpeedColor'))
+				}else if(game.settings.get('ShowDragDistance','dash') == false ||  line[i].travelled > remainingSpeed + maxSpeed){
+					color = colorStringToHex(game.settings.get('ShowDragDistance','maxSpeedColor'))
+				}
+			}
+      			
+	    	let [xgh, ygh] = canvas.grid.grid.getPixelsFromGridPosition(line[i].row, line[i].col);
+	        canvas.grid.highlightPosition(this.name, {x: xgh, y: ygh, color: color});
+	    }
   	}
+ 
+  
   	_addWaypoint(point) {
 	    //const center = canvas.grid.getCenter(point.x, point.y);
 	    this.waypoints.push(new PIXI.Point(point.x, point.y));
@@ -750,127 +674,277 @@ Hooks.on('canvasReady', ()=>{
 Hooks.on('updateUser', (user,data,diff, id)=>{
 	canvas.controls.getDragRulerForUser(data._id).color = colorStringToHex(data.color);
 })
-function getSquaresInLine (startCoordinates, endCoordinates) {
+/*function getSquaresInLine (start, end) {
    
     // Translate coordinates
-    var x1 = startCoordinates[0] || startCoordinates.x;
-    var y1 = startCoordinates[1] || startCoordinates.y;
-    var x2 = endCoordinates[0] || endCoordinates.x || 0;
-    var y2 = endCoordinates[1] || endCoordinates.y || 0;
+    var x1 = start[0] || start.x || 0;
+    var y1 = start[1] || start.y || 0;
+    var x2 = end[0] || end.x || 0;
+    var y2 = end[1] || end.y || 0;
     var pointsArray = new Array();
+    console.log(x1,y1)
+    console.log(x2,y2)
     // Define differences and error check
     var dx = Math.abs(x2 - x1);
     var dy = Math.abs(y2 - y1);
-    var sx,sy;
+    console.log(dx,dy)
+    // var sx,sy;
   
-    	 sx = (x1 < x2) ? 1 : -1;
-    	 sy = (y1 < y2) ? 1 : -1;
+    // 	 sx = (x1 < x2) ? 1 : -1;
+    // 	 sy = (y1 < y2) ? 1 : -1;
     
-    var err = dx - dy;
-    let originDist = 0;
-    // Main loop
-    while (!((x1 == x2) && (y1 == y2))) {
-        var e2 = err << 1;
-        if (e2 > -dy) {
-            err -= dy;
-            x1 += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y1 += sy;
-        }
-        originDist+= 1;
-        // Set coordinates
-        pointsArray.push({x:x1,y: y1,gridDist:originDist});
-    }
+    // var err = dx - dy;
+    // let originDist = 0;
+    // // Main loop
+    // while (!((x1 == x2) && (y1 == y2))) {
+    //     var e2 = err << 1;
+    //     if (e2 > -dy) {
+    //         err -= dy;
+    //         x1 += sx;
+    //     }
+    //     if (e2 < dx) {
+    //         err += dx;
+    //         y1 += sy;
+    //     }
+    //     originDist+= 1;
+    //     // Set coordinates
+    //     pointsArray.push({x:x1,y: y1,gridDist:originDist});
+    // }
+    let ray = new Ray({x:x1,y:y1},{x:x2,y:y2})
     // Return the result
     return pointsArray;
 }
 function measureDistancesWithDifficultTerrain(segments) {
  	let size = canvas.dimensions.size;
  	let distances = segments.map((segment)=>{
- 		let startX = Math.floor(segment.ray.A.x/size);
- 		let startY = Math.floor(segment.ray.A.y/size);
- 		let endX = Math.floor(segment.ray.B.x/size);
- 		let endY = Math.floor(segment.ray.B.y/size);   
+ 		let [startY,startX] = canvas.grid.grid.getGridPositionFromPixels(segment.ray.A.x,segment.ray.A.y)
+ 		let [endY,endX] = canvas.grid.grid.getGridPositionFromPixels(segment.ray.B.x,segment.ray.B.y)
+
  		let squares = getSquaresInLine([startX,startY],[endX,endY])
  		let totalDistance = 0;
  		let nDiagonals = 0;
  		const rule = canvas.grid.diagonalRule;
- 		if(typeof canvas.terrain !='undefined'){
- 			for (let i = 0; i < squares.length;i++){
- 				let {x,y} = squares[i];
- 				let gridDistance = canvas.scene.data.gridDistance
- 				
- 				let lastX,lastY;
- 				if(i!==0){
-	    			lastX = squares[i-1].x;
-	    			lastY = squares[i-1].y;
-	    		}else{
-	    			 lastY = startY;
-	    			 lastX = startX;
-	    		}
-	    		
-    			let dx = Math.abs(lastX - x);
-    			let dy = Math.abs(lastY - y);
-    			let nd = Math.min(dx, dy);
+ 		
+		for (let i = 0; i < squares.length;i++){
+			let {x,y} = squares[i];
+			let gridDistance = canvas.scene.data.gridDistance
+			
+			let lastX,lastY;
+			if(i!==0){
+    			lastX = squares[i-1].x;
+    			lastY = squares[i-1].y;
+    		}else{
+    			lastY = startY;
+    			lastX = startX;
+    		}
+    		
+			let dx = Math.abs(lastX - x);
+			let dy = Math.abs(lastY - y);
+			let nd = Math.min(dx, dy);
 
-    			
-    			if(nd > 0 && canvas.grid.diagonalRule == '5105'){
-    				nDiagonals++;
-    				if(Math.floor(nDiagonals%2)==0){
-    					gridDistance = gridDistance * 2;
-    				}
-    			}
-    			
-    				
+			
+			if(nd > 0 && canvas.grid.diagonalRule == '5105'){
+				nDiagonals++;
+				if(Math.floor(nDiagonals%2)==0){
+					gridDistance = gridDistance * 2;
+				}
+			}
+			
+				
 
- 				if(typeof canvas.terrain.costGrid[y]?.[x] != 'undefined'){
-		    		let point = canvas.terrain.costGrid[y][x];
-		    		squares[i].dist = (point.multiple * gridDistance);
-		    		totalDistance += (point.multiple * gridDistance)
-		    	}else{
-		    		squares[i].dist = gridDistance;
-		    		totalDistance += gridDistance;
-		    	}
-		    	
-		    	//return totalDistance
-		    	
- 			}	
- 			return {totalDistance,squares}
- 		}else{
- 			for (let i = 0; i < squares.length;i++){
- 				let {x,y} = squares[i];
- 				let gridDistance = canvas.scene.data.gridDistance
- 				
- 				let lastX,lastY;
- 				if(i!==0){
-	    			lastX = squares[i-1].x;
-	    			lastY = squares[i-1].y;
-	    		}else{
-	    			 lastY = startY;
-	    			 lastX = startX;
-	    		}
-	    		
-    			let dx = Math.abs(lastX - x);
-    			let dy = Math.abs(lastY - y);
-    			let nd = Math.min(dx, dy);
-
-    			
-    			if(nd > 0 && canvas.grid.diagonalRule == '5105'){
-    				nDiagonals++;
-    				if(Math.floor(nDiagonals%2)==0){
-    					gridDistance = gridDistance * 2;
-    				}
-    			}
-    			squares[i].dist = gridDistance;
-    			totalDistance += gridDistance;
-    			
- 			}
- 			return {totalDistance,squares}
- 		}
+			if(typeof canvas.terrain?.costGrid[y]?.[x] != 'undefined'){
+	    		let point = canvas.terrain.costGrid[y][x];
+	    		squares[i].dist = (point.multiple * gridDistance);
+	    		totalDistance += (point.multiple * gridDistance)
+	    	}else{
+	    		squares[i].dist = gridDistance;
+	    		totalDistance += gridDistance;
+	    	}
+	    	
+	    	//return totalDistance
+	    	
+		}	
+		return {totalDistance,squares}
+ 		
  		
  	})
  	
  	return distances;
-};
+};*/
+
+function grid_line(p0, p1, totalDistance=0, nDiagonals=0,ignoreTerrain=false) {
+    var dx = p1.col-p0.col, 
+    	dy = p1.row-p0.row;
+
+    var nx = Math.abs(dx), ny = Math.abs(dy);
+    var sign_x = dx > 0? 1 : -1, sign_y = dy > 0? 1 : -1;
+    let N = Math.max(nx,ny);
+    let divN = (N==0) ? 0.0 :1.0 / N;
+    let xStep = dx * divN;
+    let yStep = dy * divN;
+    var p = {row:p0.row,col: p0.col,distance:0,nDiagonals:0,travelled:0};
+    var points = [p];
+    
+    let col = p0.col;
+    let row = p0.row;
+    let travelled = totalDistance;
+    for(let i = 0;i < N;i++){
+    	col+=xStep;
+    	row+=yStep;
+    	
+    	let rCol = Math.round(col);
+    	let rRow = Math.round(row);
+    	
+    	let dist = canvas.dimensions.distance;
+    	if(game.system.id == 'dnd5e'){
+    		
+    	
+    		let dx2 = Math.abs(points[i].col - rCol);
+			let dy2 = Math.abs(points[i].row - rRow);
+			let nd = Math.min(dx2, dy2);
+		
+    		if(nd>0 && canvas.grid.diagonalRule == '5105'){
+    			nDiagonals++;
+				if(nDiagonals%2==0){
+					dist = dist * 2;
+				}
+    		}
+    	}
+    	if(typeof canvas.terrain?.costGrid[rRow]?.[rCol] != 'undefined' && !ignoreTerrain){
+    		let point = canvas.terrain.costGrid[rRow][rCol];
+    		
+    		dist = (point.multiple * dist) 
+    	}
+    	travelled+=dist;
+    	points.push({row:rRow,col:rCol,distance:dist,nDiagonals:nDiagonals,travelled:travelled})
+    }
+    
+    return points;
+}
+class Hex {
+    constructor(q, r, s) {
+        this.q = q;
+        this.r = r;
+        this.s = s;
+        if (Math.round(q + r + s) !== 0)
+            throw "q + r + s must be 0";
+    }
+    add(b) {
+        return new Hex(this.q + b.q, this.r + b.r, this.s + b.s);
+    }
+    subtract(b) {
+        return new Hex(this.q - b.q, this.r - b.r, this.s - b.s);
+    }
+    scale(k) {
+        return new Hex(this.q * k, this.r * k, this.s * k);
+    }
+    rotateLeft() {
+        return new Hex(-this.s, -this.q, -this.r);
+    }
+    rotateRight() {
+        return new Hex(-this.r, -this.s, -this.q);
+    }
+    static direction(direction) {
+        return Hex.directions[direction];
+    }
+    neighbor(direction) {
+        return this.add(Hex.direction(direction));
+    }
+    diagonalNeighbor(direction) {
+        return this.add(Hex.diagonals[direction]);
+    }
+    len() {
+        return (Math.abs(this.q) + Math.abs(this.r) + Math.abs(this.s)) / 2;
+    }
+    distance(b) {
+        return this.subtract(b).len();
+    }
+    round() {
+        var qi = Math.round(this.q);
+        var ri = Math.round(this.r);
+        var si = Math.round(this.s);
+        var q_diff = Math.abs(qi - this.q);
+        var r_diff = Math.abs(ri - this.r);
+        var s_diff = Math.abs(si - this.s);
+        if (q_diff > r_diff && q_diff > s_diff) {
+            qi = -ri - si;
+        }
+        else if (r_diff > s_diff) {
+            ri = -qi - si;
+        }
+        else {
+            si = -qi - ri;
+        }
+        return new Hex(qi, ri, si);
+    }
+    lerp(b, t) {
+        return new Hex(this.q * (1.0 - t) + b.q * t, this.r * (1.0 - t) + b.r * t, this.s * (1.0 - t) + b.s * t);
+    }
+    linedraw(b,totalDistance=0,ignoreTerrain=false) {
+        var N = this.distance(b);
+        var a_nudge = new Hex(this.q + 1e-06, this.r + 1e-06, this.s - 2e-06);
+        var b_nudge = new Hex(b.q + 1e-06, b.r + 1e-06, b.s - 2e-06);
+        var results = [];
+        var step = 1.0 / Math.max(N, 1);
+        let travelled = totalDistance;
+        for (var i = 0; i <= N; i++) {
+        	let hex = a_nudge.lerp(b_nudge, step * i).round();
+        	let grid = Coord.rCubeToOffset(hex)
+        	let dist = canvas.dimensions.distance;
+        	if(i == 0)
+        		dist = 0;
+        	else{
+	      		if(typeof canvas.terrain?.costGrid[grid.row]?.[grid.col] != 'undefined' && !ignoreTerrain){
+		    		let point = canvas.terrain.costGrid[grid.row][grid.col];
+		    		dist = (point.multiple * dist) 
+		    	}
+        	}
+        	travelled += dist;
+            results.push({row:grid.row,col:grid.col,distance:dist,travelled:travelled});
+        }
+        return results;
+    }
+}
+
+class Coord {
+    constructor(row, col) {
+        this.col = col;
+        this.row = row;
+    }
+    static qoffsetFromCube(offset, h) {
+        var col = h.q;
+        var row = h.r + (h.q + offset * (h.q & 1)) / 2;
+        // if (offset !== OffsetCoord.EVEN && offset !== OffsetCoord.ODD) {
+        //     throw "offset must be EVEN (+1) or ODD (-1)";
+        // }
+        return new OffsetCoord(col, row);
+    }
+    static qoffsetToCube(offset, h) {
+        var q = h.col;
+        var r = h.row - (h.col + offset * (h.col & 1)) / 2;
+        var s = -q - r;
+        // if (offset !== OffsetCoord.EVEN && offset !== OffsetCoord.ODD) {
+        //     throw "offset must be EVEN (+1) or ODD (-1)";
+        // }
+        return new Hex(q, r, s);
+    }
+    static rCubeToOffset(cube) {
+    	const offset = (canvas.grid.grid.options.even) ? 1:-1;
+        let row = cube.s//cube.q + (cube.r + offset * (cube.r % 2)) / 2; // 1 + (-1 + -1 * (-1 % 2)) / 2 = 
+        let col = cube.q + (cube.s + offset * (cube.s % 2)) / 2
+        // if (offset !== OffsetCoord.EVEN && offset !== OffsetCoord.ODD) {
+        //     throw "offset must be EVEN (+1) or ODD (-1)";
+        // }
+        return {row,col};
+    }
+    static rCoordToCube(row,col) {
+    	const offset = (canvas.grid.grid.options.even) ? 1:-1;
+        var q = col - (row + offset * (row & 1)) / 2;
+        var r = row;
+        var s = -q - r;
+        // if (offset !== OffsetCoord.EVEN && offset !== OffsetCoord.ODD) {
+        //     throw "offset must be EVEN (+1) or ODD (-1)";
+        // }
+        return new Hex(q, r, s);
+    }
+}
