@@ -70,7 +70,7 @@ class DragRuler extends Ruler{
 	    delete event.data.hudState;
 
 	    // Draw measurement updates
-	    if(lastX != x || lastY !=y ){
+	    if(lastX != x || lastY !=y  || dragShift){
 	    
 		    if ( Date.now() - mt > 50) {
 
@@ -796,14 +796,14 @@ function grid_line(p0, p1, totalDistance=0, nDiagonals=0,ignoreTerrain=false) {
     	let rRow = Math.round(row);
     	
     	let dist = canvas.dimensions.distance;
-    	if(game.system.id == 'dnd5e'){
+    	if((game.system.id == 'dnd5e' && canvas.grid.diagonalRule == '5105') || game.system.id == 'pf2e'){
     		
     	
     		let dx2 = Math.abs(points[i].col - rCol);
 			let dy2 = Math.abs(points[i].row - rRow);
 			let nd = Math.min(dx2, dy2);
 		
-    		if(nd>0 && canvas.grid.diagonalRule == '5105'){
+    		if(nd>0){
     			nDiagonals++;
 				if(nDiagonals%2==0){
 					dist = dist * 2;
