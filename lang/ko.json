@@ -5,6 +5,7 @@
 	"ShowDragDistance.showPath-l":"드래그를 통한 경로 표시를 기본값으로 표시한다. Ctrl키를 눌러 경로를 숨기며 비활성화될 경우 경로가 숨겨지며 Ctrl 키를 통해 표시된다.",
 	"ShowDragDistance.rangeFinder-s":"거리 측정기 활성화",
 	"ShowDragDistance.rangeFinder-l":"활성화할 경우 마우스 이동 시 'Ctrl'키를 유지하면 선택한 토큰의 범위가 표시된다 .",
+	"ShowDragDistance.maxSpeed-s":"최대 속도 색상 변경 활성화",
 	"ShowDragDistance.maxSpeed-l":"드래그 측정자는 토큰의 최대 속도에 따라 색상이 변경된다. 일부 모듈 또는 시스템과 충돌할 수 있다.",
 	"ShowDragDistance.dash-s":"질주 색상 변경 활성화",
 	"ShowDragDistance.dash-l":"드래그 측정자는 질주 속도의 칸에 대해 다른 색사을 표시한다.",
