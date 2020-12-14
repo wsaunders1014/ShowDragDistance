@@ -359,7 +359,7 @@ class DragRuler extends Ruler{
 	      hint: "ShowDragDistance.baseSpeedAttr-l",
 	      scope: "world",
 	      config: true,
-	      default: "actor.data.data.attributes.speed.value",
+	      default: "actor.data.data.attributes.movement.walk",
 	      type: String,
 	      onChange: x => window.location.reload()
 	    });
@@ -368,7 +368,7 @@ class DragRuler extends Ruler{
 	      hint: "ShowDragDistance.bonusSpeedAttr-l",
 	      scope: "world",
 	      config: true,
-	      default: "actor.data.data.attributes.speed.special",
+	      default: "",
 	      type: String,
 	      onChange: x => window.location.reload()
 	    });
