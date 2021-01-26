@@ -577,7 +577,7 @@ Hooks.on('ready',()=>{
 		switch(e.which){
 			case 17:
 				ctrlPressed = true;
-				if(canvas.controls.dragRuler.active == false && e.originalEvent.location == 1 && !rangeFinder && canvas.tokens.controlled.length>0 && game.settings.get('ShowDragDistance','rangeFinder') === true && canvas.mouseInteractionManager.state !=0 && game.activeTool !='ruler'){
+				if(canvas.controls.dragRuler.active == false && !rangeFinder && canvas.tokens.controlled.length>0 && game.settings.get('ShowDragDistance','rangeFinder') === true && canvas.mouseInteractionManager.state !=0 && game.activeTool !='ruler'){
 					rangeFinder = true;
 					canvas.controls.ruler._state = Ruler.STATES.MEASURING;
 					canvas.controls.ruler._addWaypoint(canvas.tokens.controlled[0].center)
