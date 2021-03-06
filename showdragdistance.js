@@ -531,7 +531,7 @@ class DragRuler extends Ruler{
 		let handleDragCancel = MouseInteractionManager.prototype._handleDragCancel;
 		MouseInteractionManager.prototype._handleDragCancel = function(event){
 			
-			if((typeof this.object.data != 'undefined') && typeof this.object.data.flags['pick-up-stix'] == 'undefined'){
+			if(ui.controls.activeControl === 'token' && typeof this.object.data != 'undefined' && typeof this.object.data.flags['pick-up-stix'] == 'undefined'){
 				if( canvas.tokens.controlled.length > 0 && canvas.tokens.controlled[0].mouseInteractionManager.state == 3 ){
 					switch(event.button){
 						case 0:
