@@ -5,9 +5,17 @@ Rangefinder: With a single token selected, hold CTRL on the canvas and it will d
 
 
 New Settings:
-You can now point to where the speed or movement attribute is located on the actor sheet. For instance, for DnD5e it is `actor.data.data.attributes.speed.value`. You can also point to a bonus movement attribute if your system has one. In addition you can use token.setFlag('ShowDragDistance','speed',{normal:0,dash:0}) to add any one time speed boosts via macro. The DragRuler also calls Hook.call('moveToken', token, dragRuler) when the token moves. Drag colors are configurable in client side settings if they are too close to player's color.
+You can now point to where the speed or movement attribute is located on the actor sheet. For instance, for DnD5e it is `actor.data.data.attributes.speed.value`. You can also point to a bonus movement attribute if your system has one. In addition you can use `token.setFlag('ShowDragDistance','speed',{normal:0,dash:0})` to add any one time speed boosts via macro. The DragRuler also calls Hook.call('moveToken', token, dragRuler) when the token moves. Drag colors are configurable in client side settings if they are too close to player's color.
 
 # Changelog
+2.2.3 - Added PF2 support. Fixed shift dragging not working now.
+
+2.2.2 - Rebuilt the line drawing algorithms, Now works on hex grids again. Can now set `token.ignoreTerrain=true` to ignore difficult terrain.
+
+2.2.1 - Fixed bug that froze application when dragging token off grid.
+
+2.2.0 - Add support for Terrain Layer - Drag Distance now calculates path through difficult terrain. Created a new more efficient method for highlighting squares. Confirm 7.5 support. Removed 'x' key conflict with other modules.
+
 2.1.9 - Fix multiple tokens not dragging. Fixed some bugs with gridless maps. Fix math on creating waypoints. Fix some issues with shift dragging off grid.
 
 2.1.8 - Fixed shift dropping tokens off grid. GMs can now move tokens through walls again.
