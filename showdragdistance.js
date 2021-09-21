@@ -122,7 +122,7 @@ class DragRuler extends Ruler{
 		    let {ray, label, last} = s;
 
 		  	let line;
-		 	let ignoreTerrain = (typeof this.getToken.ignoreTerrain != 'undefined') ? this.getToken.ignoreTerrain:false;
+		 	let ignoreTerrain = (typeof this.getToken.ignoreTerrain != 'undefined' && this.getToken.ignoreTerrain != null) ? this.getToken.ignoreTerrain:false;
 	      	if(canvas.grid.type > 1){
 	      		let grid0 = canvas.grid.grid.getGridPositionFromPixels(s.ray.A.x,s.ray.A.y);
 	      		let grid1 = canvas.grid.grid.getGridPositionFromPixels(s.ray.B.x,s.ray.B.y);
@@ -752,8 +752,8 @@ function measureDistancesWithDifficultTerrain(segments) {
 			
 				
 
-			if(typeof canvas.terrain?.costGrid[y]?.[x] != 'undefined'){
-	    		let point = canvas.terrain.costGrid[y][x];
+			if(typeof canvas.terrain?.cost[y]?.[x] != 'undefined'){
+	    		let point = canvas.terrain.cost[y][x];
 	    		squares[i].dist = (point.multiple * gridDistance);
 	    		totalDistance += (point.multiple * gridDistance)
 	    	}else{
@@ -810,8 +810,8 @@ function grid_line(p0, p1, totalDistance=0, nDiagonals=0,ignoreTerrain=false) {
 				}
     		}
     	}
-    	if(typeof canvas.terrain?.costGrid[rRow]?.[rCol] != 'undefined' && !ignoreTerrain){
-    		let point = canvas.terrain.costGrid[rRow][rCol];
+    	if(typeof canvas.terrain?.cost[rRow]?.[rCol] != 'undefined' && !ignoreTerrain){
+    		let point = canvas.terrain.cost[rRow][rCol];
     		
     		dist = (point.multiple * dist) 
     	}
@@ -894,8 +894,8 @@ class Hex {
         	if(i == 0)
         		dist = 0;
         	else{
-	      		if(typeof canvas.terrain?.costGrid[grid.row]?.[grid.col] != 'undefined' && !ignoreTerrain){
-		    		let point = canvas.terrain.costGrid[grid.row][grid.col];
+	      		if(typeof canvas.terrain?.cost[grid.row]?.[grid.col] != 'undefined' && !ignoreTerrain){
+		    		let point = canvas.terrain.cost[grid.row][grid.col];
 		    		dist = (point.multiple * dist) 
 		    	}
         	}
