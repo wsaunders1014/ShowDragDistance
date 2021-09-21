@@ -16,7 +16,7 @@ class DragRuler extends Ruler{
 	    this.dragRuler = this.addChild(new PIXI.Graphics());
 	    this.ruler = null;
 	    this.tokenSpeed = null;
-	    this.name = `DragRuler.${user._id}`;
+	    this.name = `DragRuler.${user.id}`;
 	    this.color = color || colorStringToHex(this.user.data.color) || 0x42F4E2;
 	    this.tokenSpeed = {normal:null,bonus:null}
 	    canvas.grid.addHighlightLayer(this.name);
@@ -38,10 +38,10 @@ class DragRuler extends Ruler{
   		const baseSpeed = parseFloat(getProperty(token,TokenSpeedAttributes.base));
 
   		const bonusSpeed = (TokenSpeedAttributes.bonus != "" && getProperty(token,TokenSpeedAttributes.bonus) !="") ? parseFloat(getProperty(token,TokenSpeedAttributes.bonus)):0;
-  		const flagBonusSpeed = (typeof token.getFlag('ShowDragDistance','speed') !='undefined') ? token.getFlag('ShowDragDistance','speed').normal:0;
-  		const normalSpeed = baseSpeed + flagBonusSpeed;
-  		const flagDashSpeed = (typeof token.getFlag('ShowDragDistance','speed') !='undefined') ? token.getFlag('ShowDragDistance','speed').dash:0;
-  		const dashSpeed = (normalSpeed + flagDashSpeed) * game.settings.get('ShowDragDistance','dashX');
+			let flaggedSpeed = {normal: 0, dash: 0};
+			Object.assign(flaggedSpeed, token.document.getFlag('ShowDragDistance','speed') || {});
+  		const normalSpeed = baseSpeed + flaggedSpeed.normal;
+  		const dashSpeed = (normalSpeed + flaggedSpeed.dash) * game.settings.get('ShowDragDistance','dashX');
   			
   		return {normal:normalSpeed,dash:dashSpeed}
   	}
@@ -122,7 +122,7 @@ class DragRuler extends Ruler{
 		    let {ray, label, last} = s;
 
 		  	let line;
-		 	let ignoreTerrain = (typeof this.getToken.ignoreTerrain != 'undefined') ? this.getToken.ignoreTerrain:false;
+		 	let ignoreTerrain = (typeof this.getToken.ignoreTerrain != 'undefined' && this.getToken.ignoreTerrain != null) ? this.getToken.ignoreTerrain:false;
 	      	if(canvas.grid.type > 1){
 	      		let grid0 = canvas.grid.grid.getGridPositionFromPixels(s.ray.A.x,s.ray.A.y);
 	      		let grid1 = canvas.grid.grid.getGridPositionFromPixels(s.ray.B.x,s.ray.B.y);
@@ -272,7 +272,7 @@ class DragRuler extends Ruler{
 	    	
 	      const path = new Ray({x: token.x, y: token.y}, {x: dest[0]+dx , y: dest[1]+dy});
 	      
-	      await token.update(path.B);
+	      await token.document.update(path.B);
 	      await token.animateMovement(path);
 	      
 	    }
@@ -285,7 +285,7 @@ class DragRuler extends Ruler{
 	toJSON() {
 	    return {
 	      class: "DragRuler",
-	      name: `DragRuler.${game.user._id}`,
+	      name: `DragRuler.${game.user.id}`,
 	      waypoints: this.waypoints,
 	      destination: this.destination,
 	      _state: this._state,
@@ -359,7 +359,7 @@ class DragRuler extends Ruler{
 	      hint: "ShowDragDistance.baseSpeedAttr-l",
 	      scope: "world",
 	      config: true,
-	      default: "actor.data.data.attributes.speed.value",
+	      default: "actor.data.data.attributes.movement.walk",
 	      type: String,
 	      onChange: x => window.location.reload()
 	    });
@@ -368,7 +368,7 @@ class DragRuler extends Ruler{
 	      hint: "ShowDragDistance.bonusSpeedAttr-l",
 	      scope: "world",
 	      config: true,
-	      default: "actor.data.data.attributes.speed.special",
+	      default: "",
 	      type: String,
 	      onChange: x => window.location.reload()
 	    });
@@ -447,9 +447,9 @@ class DragRuler extends Ruler{
 	
 	    ControlsLayer.prototype.drawDragRulers = function() {
 		    this.dragRulers = this.addChild(new PIXI.Container());
-		    for (let u of game.users.entities) {
+		    for (let u of game.users.contents) {
 		      let dragRuler = new DragRuler(u);
-		      this._dragRulers[u._id] = this.dragRulers.addChild(dragRuler);
+		      this._dragRulers[u.id] = this.dragRulers.addChild(dragRuler);
 		    }
 		}
 		ControlsLayer.prototype.getDragRulerForUser = function(userId) {
@@ -566,7 +566,7 @@ Hooks.on('init', DragRuler.init);
 Hooks.on('ready',()=>{
 	Object.defineProperty(canvas.controls,'dragRuler',  {
 	    get() {
-	       return canvas.controls.getDragRulerForUser(game.user._id);
+	       return canvas.controls.getDragRulerForUser(game.user.id);
 		}}
 	);
 	canvas.controls.dragRulers = null;
@@ -752,8 +752,8 @@ function measureDistancesWithDifficultTerrain(segments) {
 			
 				
 
-			if(typeof canvas.terrain?.costGrid[y]?.[x] != 'undefined'){
-	    		let point = canvas.terrain.costGrid[y][x];
+			if(typeof canvas.terrain?.cost[y]?.[x] != 'undefined'){
+	    		let point = canvas.terrain.cost[y][x];
 	    		squares[i].dist = (point.multiple * gridDistance);
 	    		totalDistance += (point.multiple * gridDistance)
 	    	}else{
@@ -810,8 +810,8 @@ function grid_line(p0, p1, totalDistance=0, nDiagonals=0,ignoreTerrain=false) {
 				}
     		}
     	}
-    	if(typeof canvas.terrain?.costGrid[rRow]?.[rCol] != 'undefined' && !ignoreTerrain){
-    		let point = canvas.terrain.costGrid[rRow][rCol];
+    	if(typeof canvas.terrain?.cost[rRow]?.[rCol] != 'undefined' && !ignoreTerrain){
+    		let point = canvas.terrain.cost[rRow][rCol];
     		
     		dist = (point.multiple * dist) 
     	}
@@ -894,8 +894,8 @@ class Hex {
         	if(i == 0)
         		dist = 0;
         	else{
-	      		if(typeof canvas.terrain?.costGrid[grid.row]?.[grid.col] != 'undefined' && !ignoreTerrain){
-		    		let point = canvas.terrain.costGrid[grid.row][grid.col];
+	      		if(typeof canvas.terrain?.cost[grid.row]?.[grid.col] != 'undefined' && !ignoreTerrain){
+		    		let point = canvas.terrain.cost[grid.row][grid.col];
 		    		dist = (point.multiple * dist) 
 		    	}
         	}
